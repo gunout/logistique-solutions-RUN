@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMPORT-EXPORT MONITOR PRO</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================================
+           STYLE PROFESSIONNEL - BLOOMBERG / TRADINGVIEW
+           ============================================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0e17;
+            color: #e8edf5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            padding: 10px;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #131b2e;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #1e2d4d;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 700; color: #2962ff; }
+        .logo span { color: #e8edf5; }
+        .logo .live { color: #00c853; font-size: 0.8rem; }
+
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .header-right .time { font-size: 0.8rem; color: #78909c; }
+        .header-right .status { padding: 4px 12px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+        .status-online { background: #00c85320; color: #00c853; border: 1px solid #00c85340; }
+
+        /* Badges */
+        .badge { padding: 3px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; display: inline-block; margin: 2px; }
+        .badge-free { background: #ff6b0020; color: #ff6b00; border: 1px solid #ff6b0040; }
+        .badge-pro { background: #2962ff20; color: #2962ff; border: 1px solid #2962ff40; }
+        .badge-live { background: #ff174420; color: #ff1744; border: 1px solid #ff174440; animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric-card {
+            background: #131b2e;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #1e2d4d;
+            transition: all 0.3s;
+        }
+        .metric-card:hover { border-color: #2962ff; transform: translateY(-2px); }
+        .metric-card .label { font-size: 0.6rem; text-transform: uppercase; color: #78909c; letter-spacing: 0.5px; }
+        .metric-card .value { font-size: 1.4rem; font-weight: 700; margin-top: 3px; }
+        .metric-card .change { font-size: 0.7rem; margin-top: 2px; }
+        .change-up { color: #00c853; }
+        .change-down { color: #ff1744; }
+
+        /* Grid */
+        .main-grid { display: grid; grid-template-columns: 2.5fr 1fr; gap: 15px; }
+
+        .card {
+            background: #131b2e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border: 1px solid #1e2d4d;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #78909c;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title .action { font-size: 0.65rem; color: #2962ff; cursor: pointer; }
+        .card-title .action:hover { text-decoration: underline; }
+
+        /* Vessels */
+        .vessel-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 0.8fr;
+            padding: 8px 12px;
+            border-bottom: 1px solid #1e2d4d;
+            align-items: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .vessel-item:hover { background: #1a2440; }
+        .vessel-item .name { font-weight: 600; font-size: 0.85rem; }
+        .vessel-item .detail { font-size: 0.65rem; color: #78909c; }
+        .vessel-item .status-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+        .status-quai { background: #00c85320; color: #00c853; }
+        .status-route { background: #2962ff20; color: #2962ff; }
+        .status-operation { background: #ffd60020; color: #ffd600; }
+        .status-attente { background: #ff174420; color: #ff1744; }
+        .vessel-item .teu { font-weight: 600; color: #ffd600; }
+
+        /* Alerts */
+        .alert-item {
+            padding: 8px 12px;
+            border-left: 3px solid;
+            margin-bottom: 4px;
+            background: #0d1628;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            border-radius: 0 4px 4px 0;
+        }
+        .alert-warning { border-color: #ffd600; }
+        .alert-info { border-color: #2962ff; }
+        .alert-success { border-color: #00c853; }
+        .alert-item .icon { font-size: 1rem; }
+        .alert-item .title { font-weight: 600; }
+        .alert-item .time { font-size: 0.6rem; color: #78909c; margin-left: auto; }
+
+        /* Map */
+        #map { height: 280px; border-radius: 6px; border: 1px solid #1e2d4d; }
+
+        /* Chart */
+        .chart-wrapper { position: relative; height: 220px; width: 100%; }
+        #tradeChart { width: 100% !important; height: 100% !important; }
+
+        /* Filters */
+        .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .filters select, .filters input {
+            background: #0d1628;
+            border: 1px solid #1e2d4d;
+            color: #e8edf5;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.7rem;
+        }
+        .filters select:focus, .filters input:focus { outline: none; border-color: #2962ff; }
+        .filters select option { background: #0d1628; }
+
+        /* Buttons */
+        .btn {
+            background: transparent;
+            border: 1px solid #1e2d4d;
+            color: #e8edf5;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #1a2440; border-color: #2962ff; }
+        .btn-primary { background: #2962ff; border-color: #2962ff; color: white; }
+        .btn-primary:hover { background: #1a4fc4; }
+        .btn-export { border-color: #ff6b00; color: #ff6b00; }
+        .btn-export:hover { background: #ff6b0020; }
+
+        /* Scroll */
+        .scroll-container { max-height: 400px; overflow-y: auto; }
+        .scroll-container::-webkit-scrollbar { width: 4px; }
+        .scroll-container::-webkit-scrollbar-track { background: #0d1628; }
+        .scroll-container::-webkit-scrollbar-thumb { background: #2962ff; border-radius: 2px; }
+
+        /* Stats cards */
+        .stats-small {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+        .stat-item {
+            background: #0d1628;
+            padding: 8px 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-item .label { font-size: 0.55rem; color: #78909c; text-transform: uppercase; }
+        .stat-item .value { font-size: 1rem; font-weight: 700; }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid #1e2d4d;
+            padding-top: 10px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.65rem;
+            color: #78909c;
+        }
+        .footer .links { display: flex; justify-content: center; gap: 15px; margin-top: 4px; }
+        .footer .links a { color: #78909c; text-decoration: none; }
+        .footer .links a:hover { color: #2962ff; }
+
+        .spinner {
+            border: 2px solid #1e2d4d;
+            border-top: 2px solid #2962ff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .vessel-item { grid-template-columns: 1fr; gap: 4px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+        @media (max-width: 480px) {
+            .metrics-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div>
+                <div class="logo">🚢 IMPORT<span>-EXPORT</span> <span class="live">● LIVE</span></div>
+                <div style="font-size:0.7rem;color:#78909c;margin-top:2px;">Suivi maritime professionnel • La Réunion</div>
+            </div>
+            <div class="header-right">
+                <span class="badge badge-pro">PRO</span>
+                <span class="badge badge-free">🆓 GRATUIT</span>
+                <span class="badge badge-live">🔴 LIVE</span>
+                <span class="time" id="header-time">--:--:--</span>
+                <span class="status status-online" id="status-text">● CONNECTÉ</span>
+            </div>
+        </div>
+
+        <!-- METRICS -->
+        <div class="metrics-grid" id="metrics-grid">
+            <div class="metric-card">
+                <div class="label">🚢 Navires</div>
+                <div class="value" id="vessels-count" style="color:#2962ff;">--</div>
+                <div class="change" id="vessels-change">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">📦 TEU Total</div>
+                <div class="value" id="total-teu" style="color:#ffd600;">--</div>
+                <div class="change" id="avg-teu">Moy: --</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">💶 Valeur Marchandise</div>
+                <div class="value" id="total-value" style="color:#00c853;">--</div>
+                <div class="change" id="value-change">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">🏢 Compagnies</div>
+                <div class="value" id="companies-count" style="color:#2962ff;">--</div>
+                <div class="change" id="companies-change">Actives</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">📊 Types de navires</div>
+                <div class="value" id="types-count" style="color:#ffd600;">--</div>
+                <div class="change" id="types-change">Catégories</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">⚡ En route</div>
+                <div class="value" id="route-count" style="color:#2962ff;">--</div>
+                <div class="change" id="route-change">--</div>
+            </div>
+        </div>
+
+        <!-- ALERTS -->
+        <div id="alerts-container" style="margin-bottom:10px;"></div>
+
+        <!-- MAIN GRID -->
+        <div class="main-grid">
+            <!-- LEFT COLUMN -->
+            <div>
+                <!-- FILTERS -->
+                <div class="card">
+                    <div class="filters">
+                        <select id="filter-status">
+                            <option value="all">Tous les statuts</option>
+                            <option value="En route">En route</option>
+                            <option value="À quai">À quai</option>
+                            <option value="En opération">En opération</option>
+                            <option value="En attente">En attente</option>
+                        </select>
+                        <select id="filter-type">
+                            <option value="all">Tous les types</option>
+                            <option value="Porte-conteneurs">Porte-conteneurs</option>
+                            <option value="Cargo">Cargo</option>
+                            <option value="Pétrolier">Pétrolier</option>
+                            <option value="Vraquier">Vraquier</option>
+                        </select>
+                        <input type="text" id="filter-search" placeholder="🔍 Rechercher..." style="flex:1;">
+                        <button class="btn btn-primary" onclick="applyFilters()">Filtrer</button>
+                        <button class="btn" onclick="clearFilters()">✕</button>
+                    </div>
+                </div>
+
+                <!-- VESSELS -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>⛴️ Navires en temps réel</span>
+                        <div>
+                            <span id="vessel-count-display" style="color:#78909c;font-size:0.7rem;">0</span>
+                            <button class="btn" onclick="refreshVessels()" style="padding:2px 8px;margin-left:5px;">🔄</button>
+                        </div>
+                    </div>
+                    <div class="scroll-container" id="vessels-container"><div class="spinner"></div></div>
+                </div>
+
+                <!-- CHART -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>📊 Statistiques Commerciales</span>
+                        <span class="action" onclick="refreshChart()">🔄 Actualiser</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="tradeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div>
+                <!-- MAP -->
+                <div class="card">
+                    <div class="card-title"><span>🗺️ Carte des navires</span></div>
+                    <div id="map"></div>
+                </div>
+
+                <!-- STATS -->
+                <div class="card">
+                    <div class="card-title"><span>📈 Statistiques avancées</span></div>
+                    <div class="stats-small" id="stats-container">
+                        <div class="stat-item"><div class="label">Poids total</div><div class="value" id="total-weight">--</div></div>
+                        <div class="stat-item"><div class="label">Cargaisons</div><div class="value" id="cargo-count">--</div></div>
+                        <div class="stat-item"><div class="label">Navires/compagnie</div><div class="value" id="ships-per-company">--</div></div>
+                        <div class="stat-item"><div class="label">TEU moyen</div><div class="value" id="avg-teu-stat">--</div></div>
+                    </div>
+                </div>
+
+                <!-- PORTS -->
+                <div class="card">
+                    <div class="card-title"><span>⚓ Ports</span></div>
+                    <div id="ports-container"><div class="spinner"></div></div>
+                </div>
+
+                <!-- WEATHER & EXPORT -->
+                <div class="card">
+                    <div class="card-title"><span>🌤️ Météo & Export</span></div>
+                    <div id="weather-container" style="font-size:0.8rem;margin-bottom:8px;"><div class="spinner"></div></div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn btn-export" onclick="exportCSV()">📄 CSV</button>
+                        <button class="btn btn-export" onclick="exportExcel()">📊 Excel</button>
+                        <button class="btn btn-primary" onclick="refreshData()">🔄 Rafraîchir</button>
+                    </div>
+                </div>
+
+                <!-- TOP EXPORT -->
+                <div class="card">
+                    <div class="card-title"><span>🏆 Top Exportations</span></div>
+                    <div id="top-products"><div class="spinner"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div>IMPORT-EXPORT MONITOR PRO v3.0 • <span style="color:#2962ff;">⚡ Données en temps réel</span> • 100% gratuit</div>
+            <div class="links">
+                <a href="/"><i class="fas fa-home"></i> Accueil</a>
+                <a href="#" onclick="location.reload()"><i class="fas fa-sync"></i> Rafraîchir</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // CONFIGURATION
+        // ================================================================
+        const API_BASE = 'http://localhost:5001/api';
+        let map = null;
+        let chartInstance = null;
+        let vesselsData = [];
+
+        // ================================================================
+        // API CALLS
+        // ================================================================
+        async function apiCall(endpoint) {
+            try {
+                const r = await fetch(`${API_BASE}${endpoint}`);
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return await r.json();
+            } catch(e) { console.error(e); return null; }
+        }
+
+        // ================================================================
+        // CHART
+        // ================================================================
+        function updateTradeChart(trade) {
+            if (!trade) return;
+            if (chartInstance) { try { chartInstance.destroy(); } catch(e) {} chartInstance = null; }
+
+            const canvas = document.getElementById('tradeChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const container = canvas.parentElement;
+            if (container) {
+                canvas.width = container.clientWidth || 500;
+                canvas.height = container.clientHeight || 220;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Export', 'Import', 'Balance'],
+                    datasets: [
+                        {
+                            label: 'France (Mds €)',
+                            data: [
+                                trade.france?.export || 0,
+                                trade.france?.import || 0,
+                                trade.france?.balance || 0
+                            ],
+                            backgroundColor: ['#2962ff', '#ff6b00', '#ff1744'],
+                            borderColor: ['#2962ff', '#ff6b00', '#ff1744'],
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            maxBarThickness: 40
+                        },
+                        {
+                            label: 'Réunion (Mds €)',
+                            data: [
+                                trade.reunion?.export || 0,
+                                trade.reunion?.import || 0,
+                                trade.reunion?.balance || 0
+                            ],
+                            backgroundColor: ['rgba(41,98,255,0.3)', 'rgba(255,107,0,0.3)', 'rgba(255,23,68,0.3)'],
+                            borderColor: ['rgba(41,98,255,0.6)', 'rgba(255,107,0,0.6)', 'rgba(255,23,68,0.6)'],
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            maxBarThickness: 40
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e8edf5', font: { size: 9 }, boxWidth: 10, padding: 6 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: '#78909c', font: { size: 8 } },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            beginAtZero: true
+                        },
+                        x: {
+                            ticks: { color: '#78909c', font: { size: 8 } },
+                            grid: { display: false }
+                        }
+                    },
+                    animation: { duration: 300 }
+                }
+            });
+        }
+
+        // ================================================================
+        // LOAD DATA
+        // ================================================================
+        async function loadData() {
+            const data = await apiCall('/dashboard');
+            if (data) {
+                vesselsData = data.vessels || [];
+                updateVessels(vesselsData);
+                updateMetrics(data);
+                updatePorts(data.ports || []);
+                updateWeather(data.weather);
+                updateAlerts(data.alerts || []);
+                updateMap(vesselsData);
+                updateStats(data.stats || {});
+                updateHeader(data.timestamp);
+                if (data.trade) {
+                    setTimeout(() => updateTradeChart(data.trade), 50);
+                }
+                updateProducts(data.trade);
+            }
+        }
+
+        // ================================================================
+        // UPDATE FUNCTIONS
+        // ================================================================
+        function updateVessels(vessels) {
+            const container = document.getElementById('vessels-container');
+            document.getElementById('vessel-count-display').textContent = vessels.length;
+
+            if (!vessels.length) {
+                container.innerHTML = '<div style="color:#78909c;text-align:center;padding:20px;">Aucun navire détecté</div>';
+                return;
+            }
+
+            let html = '';
+            vessels.forEach(v => {
+                const statusClass = {
+                    'À quai': 'status-quai',
+                    'En route': 'status-route',
+                    'En opération': 'status-operation',
+                    'En attente': 'status-attente'
+                }[v.status] || '';
+
+                html += `
+                    <div class="vessel-item" data-status="${v.status}" data-type="${v.type}" data-name="${v.name.toLowerCase()}">
+                        <div>
+                            <div class="name">${v.name}</div>
+                            <div class="detail">${v.flag || ''} • ${v.type || ''} • ${v.compagnie || ''}</div>
+                        </div>
+                        <div class="detail">${v.cargo || '--'}</div>
+                        <div><span class="status-badge ${statusClass}">${v.status || '--'}</span></div>
+                        <div style="text-align:right;">
+                            <span class="teu">${v.teu || 0} TEU</span>
+                            <div class="detail">⚡ ${v.speed || 0} nd</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateMetrics(data) {
+            const vessels = data.vessels || [];
+            const stats = data.stats || {};
+
+            document.getElementById('vessels-count').textContent = vessels.length;
+            document.getElementById('vessels-change').textContent = `+${vessels.length} actifs`;
+            document.getElementById('vessels-change').className = 'change change-up';
+
+            document.getElementById('total-teu').textContent = (stats.total_teu || 0).toLocaleString();
+            document.getElementById('avg-teu').textContent = `Moy: ${(stats.avg_teu || 0).toLocaleString()}`;
+
+            document.getElementById('total-value').textContent = `${((stats.total_valeur || 0) / 1e6).toFixed(1)}M €`;
+            document.getElementById('value-change').textContent = 'Valeur totale';
+
+            document.getElementById('companies-count').textContent = stats.compagnies_actives || 0;
+            document.getElementById('companies-change').textContent = 'Actives';
+
+            document.getElementById('types-count').textContent = stats.types_navires || 0;
+            document.getElementById('types-change').textContent = 'Catégories';
+
+            document.getElementById('route-count').textContent = stats.navires_par_statut?.['En route'] || 0;
+            document.getElementById('route-change').textContent = 'En navigation';
+        }
+
+        function updateStats(stats) {
+            document.getElementById('total-weight').textContent = `${((stats.total_poids || 0)).toFixed(0)}t`;
+            document.getElementById('cargo-count').textContent = stats.cargo_categories || 0;
+            const shipsPerCompany = stats.compagnies_actives > 0 ?
+                Math.round((stats.total_teu || 0) / stats.compagnies_actives) : 0;
+            document.getElementById('ships-per-company').textContent = shipsPerCompany.toLocaleString();
+            document.getElementById('avg-teu-stat').textContent = (stats.avg_teu || 0).toLocaleString();
+        }
+
+        function updatePorts(ports) {
+            const container = document.getElementById('ports-container');
+            if (!ports.length) { container.innerHTML = '<div style="color:#78909c;text-align:center;padding:10px;">Aucun port</div>'; return; }
+
+            let html = '';
+            ports.forEach(p => {
+                html += `
+                    <div style="background:#0d1628;padding:8px 12px;border-radius:4px;margin-bottom:6px;border-left:3px solid #2962ff;">
+                        <div style="font-weight:600;font-size:0.85rem;">⚓ ${p.name}</div>
+                        <div style="font-size:0.7rem;color:#78909c;">${p.city}, ${p.country}</div>
+                        <div style="display:flex;gap:15px;margin-top:3px;font-size:0.65rem;color:#78909c;">
+                            <span>📦 ${p.conteneurs}</span>
+                            <span>🚢 ${p.trafic}</span>
+                            <span>⚓ ${p.quais} quais</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateWeather(weather) {
+            const container = document.getElementById('weather-container');
+            if (!weather || weather.error) {
+                container.innerHTML = '<div style="color:#78909c;">Météo indisponible</div>';
+                return;
+            }
+
+            const current = weather.current || {};
+            container.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+                    <div><span style="color:#78909c;">🌡️</span> ${current.temperature_2m || '--'}°C</div>
+                    <div><span style="color:#78909c;">💨</span> ${current.wind_speed_10m || '--'} km/h</div>
+                    <div><span style="color:#78909c;">💧</span> ${current.precipitation || '--'} mm</div>
+                </div>
+            `;
+        }
+
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alerts-container');
+            if (!alerts.length) { container.innerHTML = ''; return; }
+
+            container.innerHTML = alerts.map(a => `
+                <div class="alert-item alert-${a.level}">
+                    <span class="icon">${a.icon || 'ℹ️'}</span>
+                    <div>
+                        <div class="title">${a.title || a.message}</div>
+                        <div style="font-size:0.7rem;color:#78909c;">${a.message}</div>
+                    </div>
+                    <span class="time">${new Date(a.time).toLocaleTimeString()}</span>
+                </div>
+            `).join('');
+        }
+
+        function updateMap(vessels) {
+            if (typeof L === 'undefined') return;
+            if (!map) {
+                map = L.map('map').setView([-20.9386, 55.2834], 8);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    className: 'map-tiles'
+                }).addTo(map);
+            }
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker || layer instanceof L.CircleMarker) map.removeLayer(layer);
+            });
+
+            vessels.forEach(v => {
+                if (!v.lat || !v.lon) return;
+                const color = {
+                    'À quai': '#00c853',
+                    'En route': '#2962ff',
+                    'En opération': '#ffd600',
+                    'En attente': '#ff1744'
+                }[v.status] || '#2962ff';
+
+                const marker = L.circleMarker([v.lat, v.lon], {
+                    radius: 5 + (v.teu || 0) / 5000,
+                    fillColor: color,
+                    color: color,
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.6
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <div style="font-family:sans-serif;font-size:12px;">
+                        <b>${v.name}</b><br>
+                        Statut: ${v.status}<br>
+                        Vitesse: ${v.speed} nœuds<br>
+                        TEU: ${v.teu || 0}<br>
+                        Cargo: ${v.cargo || '--'}<br>
+                        Destination: ${v.destination || 'N/A'}
+                    </div>
+                `);
+            });
+        }
+
+        function updateProducts(trade) {
+            const container = document.getElementById('top-products');
+            if (!trade || !trade.top_export) {
+                container.innerHTML = '<div style="color:#78909c;text-align:center;padding:10px;">Indisponible</div>';
+                return;
+            }
+
+            let html = '';
+            trade.top_export.slice(0, 5).forEach(p => {
+                const color = p.croissance > 0 ? '#00c853' : '#ff1744';
+                html += `
+                    <div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #1e2d4d;">
+                        <span style="font-size:0.8rem;">${p.produit}</span>
+                        <span style="font-size:0.75rem;color:#ffd600;">${p.valeur} Mds €</span>
+                        <span style="font-size:0.6rem;color:${color};">${p.croissance > 0 ? '+' : ''}${p.croissance}%</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateHeader(timestamp) {
+            if (timestamp) {
+                document.getElementById('header-time').textContent = new Date(timestamp).toLocaleTimeString();
+            }
+        }
+
+        // ================================================================
+        // FILTERS
+        // ================================================================
+        function applyFilters() {
+            const status = document.getElementById('filter-status').value;
+            const type = document.getElementById('filter-type').value;
+            const search = document.getElementById('filter-search').value.toLowerCase();
+
+            const items = document.querySelectorAll('.vessel-item');
+            let visible = 0;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const matchStatus = status === 'all' || item.dataset.status === status;
+                const matchType = type === 'all' || item.dataset.type === type;
+                const matchSearch = text.includes(search);
+                const show = matchStatus && matchType && matchSearch;
+                item.style.display = show ? 'grid' : 'none';
+                if (show) visible++;
+            });
+            document.getElementById('vessel-count-display').textContent = visible;
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-status').value = 'all';
+            document.getElementById('filter-type').value = 'all';
+            document.getElementById('filter-search').value = '';
+            applyFilters();
+        }
+
+        // ================================================================
+        // REFRESH
+        // ================================================================
+        function refreshChart() {
+            if (chartInstance) { try { chartInstance.destroy(); } catch(e) {} chartInstance = null; }
+            apiCall('/trade').then(trade => { if (trade) setTimeout(() => updateTradeChart(trade), 50); });
+        }
+
+        async function refreshData() { await loadData(); }
+
+        async function refreshVessels() {
+            const vessels = await apiCall('/vessels');
+            if (vessels) { vesselsData = vessels; updateVessels(vessels); }
+        }
+
+        function exportCSV() { window.open(`${API_BASE}/export/csv`); }
+        function exportExcel() { window.open(`${API_BASE}/export/excel`); }
+
+        // ================================================================
+        // RESIZE
+        // ================================================================
+        let resizeTimer;
+        function handleResize() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (chartInstance) {
+                    try {
+                        const canvas = document.getElementById('tradeChart');
+                        const container = canvas.parentElement;
+                        if (container) {
+                            canvas.width = container.clientWidth || 500;
+                            canvas.height = container.clientHeight || 220;
+                            chartInstance.resize();
+                        }
+                    } catch(e) {}
+                }
+            }, 200);
+        }
+
+        // ================================================================
+        // INIT
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            setInterval(loadData, 30000);
+
+            document.getElementById('filter-search').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') applyFilters();
+            });
+
+            window.addEventListener('resize', handleResize);
+        });
+    </script>
+</body>
+</html>
