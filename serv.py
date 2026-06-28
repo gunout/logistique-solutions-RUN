@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-IMPORT-EXPORT MONITOR - VERSION PROFESSIONNELLE
-Port: 5001
+IMPORT-EXPORT MONITOR - VERSION AMÉLIORÉE
 Interface Bloomberg/TradingView Style
 """
 
@@ -19,6 +18,11 @@ from io import StringIO, BytesIO
 from functools import lru_cache
 import pandas as pd
 import numpy as np
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 
 app = Flask(__name__,
             static_folder='static',
@@ -94,7 +98,6 @@ MARCHANDISES = {
 
 @lru_cache(maxsize=50)
 def get_weather_la_reunion():
-    """Météo en temps réel"""
     try:
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
@@ -112,13 +115,12 @@ def get_weather_la_reunion():
         return None
 
 def get_mock_vessels():
-    """Génère des données de navires enrichies"""
     now = datetime.now()
     vessels = []
     statuses = ['À quai', 'En route', 'En opération', 'En attente']
     weights = [0.3, 0.4, 0.2, 0.1]
 
-    for i in range(15 + random.randint(0, 8)):
+    for i in range(18 + random.randint(0, 8)):
         status = random.choices(statuses, weights=weights)[0]
         lat = -20.9386 + random.uniform(-2, 2)
         lon = 55.2834 + random.uniform(-2, 2)
@@ -157,7 +159,6 @@ def get_mock_vessels():
     return sorted(vessels, key=lambda x: x['status'])
 
 def get_trade_stats():
-    """Statistiques commerciales enrichies"""
     return {
         'france': {
             'export': round(585.6 + random.uniform(-5, 5), 1),
@@ -214,7 +215,6 @@ def get_trade_stats():
     }
 
 def check_alerts(vessels):
-    """Alertes enrichies"""
     alerts = []
     for v in vessels:
         if v['status'] == 'En attente':
@@ -266,7 +266,6 @@ def get_dashboard():
     trade = get_trade_stats()
     alerts = check_alerts(vessels)
 
-    # Statistiques avancées
     stats = {
         'total_teu': sum(v['teu'] for v in vessels),
         'avg_teu': round(sum(v['teu'] for v in vessels) / len(vessels) if vessels else 0),
@@ -288,6 +287,15 @@ def get_dashboard():
         )[:5]
     }
 
+    # Historique des navires (pour graphique de tendance)
+    history = []
+    for i in range(24):
+        date = datetime.now() - timedelta(hours=i)
+        history.append({
+            'time': date.isoformat(),
+            'count': random.randint(10, 25)
+        })
+
     return jsonify({
         'vessels': vessels,
         'ports': list(PORTS_INFO.values()),
@@ -295,20 +303,13 @@ def get_dashboard():
         'trade': trade,
         'alerts': alerts,
         'stats': stats,
+        'history': history,
         'timestamp': datetime.now().isoformat()
     })
 
 @app.route('/api/vessels')
 def get_vessels():
     return jsonify(get_mock_vessels())
-
-@app.route('/api/vessels/<vessel_id>')
-def get_vessel_detail(vessel_id):
-    vessels = get_mock_vessels()
-    for v in vessels:
-        if v['id'] == vessel_id:
-            return jsonify(v)
-    return jsonify({'error': 'Navire non trouvé'}), 404
 
 @app.route('/api/ports')
 def get_ports():
@@ -373,6 +374,60 @@ def export_excel():
     return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                      as_attachment=True, download_name='rapport_complet.xlsx')
 
+@app.route('/api/export/pdf')
+def export_pdf():
+    vessels = get_mock_vessels()
+    trade = get_trade_stats()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Titre
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=18, textColor=colors.HexColor('#0055A4'))
+    story.append(Paragraph("Rapport Import-Export", title_style))
+    story.append(Paragraph(f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+    story.append(Spacer(1, 20))
+
+    # Statistiques
+    story.append(Paragraph("Statistiques Commerciales", styles['Heading2']))
+    stats_data = [
+        ['Indicateur', 'France', 'Réunion'],
+        ['Exportations (Mds €)', f"{trade['france']['export']}", f"{trade['reunion']['export']}"],
+        ['Importations (Mds €)', f"{trade['france']['import']}", f"{trade['reunion']['import']}"],
+        ['Balance (Mds €)', f"{trade['france']['balance']}", f"{trade['reunion']['balance']}"]
+    ]
+    stats_table = Table(stats_data)
+    stats_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(stats_table)
+    story.append(Spacer(1, 20))
+
+    # Navires
+    story.append(Paragraph("Liste des Navires", styles['Heading2']))
+    navires_data = [['Navire', 'Type', 'Statut', 'TEU', 'Compagnie']]
+    for v in vessels[:25]:
+        navires_data.append([v['name'], v['type'], v['status'], v['teu'], v['compagnie']])
+
+    navires_table = Table(navires_data)
+    navires_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(navires_table)
+
+    doc.build(story)
+    buffer.seek(0)
+
+    return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name='rapport_complet.pdf')
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -387,16 +442,16 @@ if __name__ == '__main__':
     os.makedirs('static/js', exist_ok=True)
 
     print("=" * 60)
-    print("🚢 IMPORT-EXPORT MONITOR - PROFESSIONNEL")
+    print("🚢 IMPORT-EXPORT MONITOR - VERSION AMÉLIORÉE")
     print("=" * 60)
     print(f"🌐 http://localhost:5001")
     print("=" * 60)
     print("📊 Fonctionnalités:")
-    print("   - 15+ navires en temps réel")
-    print("   - Statistiques avancées")
-    print("   - Alertes intelligentes")
+    print("   - Dashboard KPI temps réel")
     print("   - Graphiques interactifs")
-    print("   - Export CSV/Excel")
+    print("   - Cartographie maritime")
+    print("   - Alertes intelligentes")
+    print("   - Export CSV/Excel/PDF")
     print("=" * 60)
 
     app.run(host='0.0.0.0', port=5001, debug=True)
