@@ -17,48 +17,68 @@
 
     <style>
         /* ============================================================
-           STYLE PROFESSIONNEL - BLOOMBERG / TRADINGVIEW
+           STYLE PROFESSIONNEL AMÉLIORÉ
            ============================================================ */
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131b2e;
+            --bg-card: #0d1628;
+            --border-color: #1e2d4d;
+            --text-primary: #e8edf5;
+            --text-secondary: #78909c;
+            --accent-blue: #2962ff;
+            --accent-green: #00c853;
+            --accent-orange: #ff6b00;
+            --accent-red: #ff1744;
+            --accent-yellow: #ffd600;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: #0a0e17;
-            color: #e8edf5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             padding: 10px;
+            transition: all 0.3s;
         }
 
         .container { max-width: 1600px; margin: 0 auto; }
 
-        /* Header */
+        /* ============================================================
+           HEADER
+           ============================================================ */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
-            background: #131b2e;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
             border-radius: 8px;
             margin-bottom: 15px;
-            border: 1px solid #1e2d4d;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .logo { font-size: 1.5rem; font-weight: 700; color: #2962ff; }
-        .logo span { color: #e8edf5; }
-        .logo .live { color: #00c853; font-size: 0.8rem; }
+        .logo { font-size: 1.4rem; font-weight: 700; }
+        .logo span { color: var(--text-primary); }
+        .logo .live { color: var(--accent-green); font-size: 0.7rem; animation: pulse-green 1.5s infinite; }
+        @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-        .header-right { display: flex; align-items: center; gap: 15px; }
-        .header-right .time { font-size: 0.8rem; color: #78909c; }
-        .header-right .status { padding: 4px 12px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
-        .status-online { background: #00c85320; color: #00c853; border: 1px solid #00c85340; }
+        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .header-right .time { font-size: 0.8rem; color: var(--text-secondary); }
+        .status-online { background: var(--accent-green); color: white; padding: 3px 12px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; }
 
-        /* Badges */
-        .badge { padding: 3px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; display: inline-block; margin: 2px; }
-        .badge-free { background: #ff6b0020; color: #ff6b00; border: 1px solid #ff6b0040; }
-        .badge-pro { background: #2962ff20; color: #2962ff; border: 1px solid #2962ff40; }
-        .badge-live { background: #ff174420; color: #ff1744; border: 1px solid #ff174440; animation: pulse-red 1.5s infinite; }
+        .badge { padding: 3px 10px; border-radius: 4px; font-size: 0.6rem; font-weight: 600; display: inline-block; }
+        .badge-pro { background: var(--accent-blue); color: white; }
+        .badge-free { background: var(--accent-orange); color: white; }
+        .badge-live { background: var(--accent-red); color: white; animation: pulse-red 1.5s infinite; }
         @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
-        /* Metrics Grid */
+        /* ============================================================
+           METRICS
+           ============================================================ */
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -67,35 +87,38 @@
         }
 
         .metric-card {
-            background: #131b2e;
+            background: var(--bg-secondary);
             padding: 12px 15px;
             border-radius: 8px;
-            border: 1px solid #1e2d4d;
+            border: 1px solid var(--border-color);
             transition: all 0.3s;
+            cursor: default;
         }
-        .metric-card:hover { border-color: #2962ff; transform: translateY(-2px); }
-        .metric-card .label { font-size: 0.6rem; text-transform: uppercase; color: #78909c; letter-spacing: 0.5px; }
-        .metric-card .value { font-size: 1.4rem; font-weight: 700; margin-top: 3px; }
-        .metric-card .change { font-size: 0.7rem; margin-top: 2px; }
-        .change-up { color: #00c853; }
-        .change-down { color: #ff1744; }
+        .metric-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(41,98,255,0.1); }
+        .metric-card .label { font-size: 0.55rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; }
+        .metric-card .value { font-size: 1.3rem; font-weight: 700; margin-top: 3px; }
+        .metric-card .change { font-size: 0.65rem; margin-top: 2px; }
+        .change-up { color: var(--accent-green); }
+        .change-down { color: var(--accent-red); }
 
-        /* Grid */
+        /* ============================================================
+           GRID
+           ============================================================ */
         .main-grid { display: grid; grid-template-columns: 2.5fr 1fr; gap: 15px; }
 
         .card {
-            background: #131b2e;
+            background: var(--bg-secondary);
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 12px;
-            border: 1px solid #1e2d4d;
+            border: 1px solid var(--border-color);
         }
 
         .card-title {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
-            color: #78909c;
+            color: var(--text-secondary);
             letter-spacing: 0.5px;
             margin-bottom: 10px;
             display: flex;
@@ -103,74 +126,86 @@
             align-items: center;
         }
 
-        .card-title .action { font-size: 0.65rem; color: #2962ff; cursor: pointer; }
+        .card-title .action { font-size: 0.6rem; color: var(--accent-blue); cursor: pointer; }
         .card-title .action:hover { text-decoration: underline; }
 
-        /* Vessels */
+        /* ============================================================
+           VESSELS
+           ============================================================ */
         .vessel-item {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 0.8fr;
             padding: 8px 12px;
-            border-bottom: 1px solid #1e2d4d;
+            border-bottom: 1px solid var(--border-color);
             align-items: center;
             transition: all 0.2s;
             cursor: pointer;
         }
         .vessel-item:hover { background: #1a2440; }
         .vessel-item .name { font-weight: 600; font-size: 0.85rem; }
-        .vessel-item .detail { font-size: 0.65rem; color: #78909c; }
-        .vessel-item .status-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-        .status-quai { background: #00c85320; color: #00c853; }
-        .status-route { background: #2962ff20; color: #2962ff; }
-        .status-operation { background: #ffd60020; color: #ffd600; }
-        .status-attente { background: #ff174420; color: #ff1744; }
-        .vessel-item .teu { font-weight: 600; color: #ffd600; }
+        .vessel-item .detail { font-size: 0.6rem; color: var(--text-secondary); }
+        .vessel-item .status-badge { font-size: 0.55rem; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+        .status-quai { background: rgba(0,200,83,0.2); color: var(--accent-green); }
+        .status-route { background: rgba(41,98,255,0.2); color: var(--accent-blue); }
+        .status-operation { background: rgba(255,214,0,0.2); color: var(--accent-yellow); }
+        .status-attente { background: rgba(255,23,68,0.2); color: var(--accent-red); }
+        .vessel-item .teu { font-weight: 600; color: var(--accent-yellow); }
 
-        /* Alerts */
+        /* ============================================================
+           ALERTS
+           ============================================================ */
         .alert-item {
             padding: 8px 12px;
             border-left: 3px solid;
             margin-bottom: 4px;
-            background: #0d1628;
+            background: var(--bg-card);
             display: flex;
             align-items: center;
             gap: 10px;
             font-size: 0.8rem;
             border-radius: 0 4px 4px 0;
         }
-        .alert-warning { border-color: #ffd600; }
-        .alert-info { border-color: #2962ff; }
-        .alert-success { border-color: #00c853; }
+        .alert-warning { border-color: var(--accent-yellow); }
+        .alert-info { border-color: var(--accent-blue); }
+        .alert-success { border-color: var(--accent-green); }
         .alert-item .icon { font-size: 1rem; }
         .alert-item .title { font-weight: 600; }
-        .alert-item .time { font-size: 0.6rem; color: #78909c; margin-left: auto; }
+        .alert-item .time { font-size: 0.55rem; color: var(--text-secondary); margin-left: auto; }
 
-        /* Map */
-        #map { height: 280px; border-radius: 6px; border: 1px solid #1e2d4d; }
+        /* ============================================================
+           MAP
+           ============================================================ */
+        #map { height: 280px; border-radius: 6px; border: 1px solid var(--border-color); }
 
-        /* Chart */
+        /* ============================================================
+           CHART
+           ============================================================ */
         .chart-wrapper { position: relative; height: 220px; width: 100%; }
         #tradeChart { width: 100% !important; height: 100% !important; }
 
-        /* Filters */
+        /* ============================================================
+           FILTERS
+           ============================================================ */
         .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
         .filters select, .filters input {
-            background: #0d1628;
-            border: 1px solid #1e2d4d;
-            color: #e8edf5;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             padding: 6px 12px;
             border-radius: 4px;
             font-family: inherit;
             font-size: 0.7rem;
         }
-        .filters select:focus, .filters input:focus { outline: none; border-color: #2962ff; }
-        .filters select option { background: #0d1628; }
+        .filters select:focus, .filters input:focus { outline: none; border-color: var(--accent-blue); }
+        .filters select option { background: var(--bg-card); }
 
-        /* Buttons */
+        /* ============================================================
+           BUTTONS
+           ============================================================ */
         .btn {
             background: transparent;
-            border: 1px solid #1e2d4d;
-            color: #e8edf5;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             padding: 4px 12px;
             border-radius: 4px;
             font-family: inherit;
@@ -178,49 +213,46 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .btn:hover { background: #1a2440; border-color: #2962ff; }
-        .btn-primary { background: #2962ff; border-color: #2962ff; color: white; }
+        .btn:hover { background: #1a2440; border-color: var(--accent-blue); }
+        .btn-primary { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
         .btn-primary:hover { background: #1a4fc4; }
-        .btn-export { border-color: #ff6b00; color: #ff6b00; }
-        .btn-export:hover { background: #ff6b0020; }
+        .btn-export { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .btn-export:hover { background: rgba(255,107,0,0.2); }
 
-        /* Scroll */
-        .scroll-container { max-height: 400px; overflow-y: auto; }
+        /* ============================================================
+           SCROLL
+           ============================================================ */
+        .scroll-container { max-height: 380px; overflow-y: auto; }
         .scroll-container::-webkit-scrollbar { width: 4px; }
-        .scroll-container::-webkit-scrollbar-track { background: #0d1628; }
-        .scroll-container::-webkit-scrollbar-thumb { background: #2962ff; border-radius: 2px; }
+        .scroll-container::-webkit-scrollbar-track { background: var(--bg-card); }
+        .scroll-container::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 2px; }
 
-        /* Stats cards */
-        .stats-small {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-        }
-        .stat-item {
-            background: #0d1628;
-            padding: 8px 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .stat-item .label { font-size: 0.55rem; color: #78909c; text-transform: uppercase; }
+        /* ============================================================
+           STATS
+           ============================================================ */
+        .stats-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .stat-item { background: var(--bg-card); padding: 8px 10px; border-radius: 4px; text-align: center; }
+        .stat-item .label { font-size: 0.5rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-item .value { font-size: 1rem; font-weight: 700; }
 
-        /* Footer */
+        /* ============================================================
+           FOOTER
+           ============================================================ */
         .footer {
-            border-top: 1px solid #1e2d4d;
+            border-top: 1px solid var(--border-color);
             padding-top: 10px;
             margin-top: 15px;
             text-align: center;
-            font-size: 0.65rem;
-            color: #78909c;
+            font-size: 0.6rem;
+            color: var(--text-secondary);
         }
         .footer .links { display: flex; justify-content: center; gap: 15px; margin-top: 4px; }
-        .footer .links a { color: #78909c; text-decoration: none; }
-        .footer .links a:hover { color: #2962ff; }
+        .footer .links a { color: var(--text-secondary); text-decoration: none; }
+        .footer .links a:hover { color: var(--accent-blue); }
 
         .spinner {
-            border: 2px solid #1e2d4d;
-            border-top: 2px solid #2962ff;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--accent-blue);
             border-radius: 50%;
             width: 24px;
             height: 24px;
@@ -229,7 +261,9 @@
         }
         @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
 
-        /* Responsive */
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
         @media (max-width: 1200px) {
             .main-grid { grid-template-columns: 1fr; }
             .metrics-grid { grid-template-columns: repeat(3, 1fr); }
@@ -250,14 +284,16 @@
         <div class="header">
             <div>
                 <div class="logo">🚢 IMPORT<span>-EXPORT</span> <span class="live">● LIVE</span></div>
-                <div style="font-size:0.7rem;color:#78909c;margin-top:2px;">Suivi maritime professionnel • La Réunion</div>
+                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">
+                    <i class="fas fa-map-pin"></i> La Réunion • <span id="vessel-count-header">0</span> navires actifs
+                </div>
             </div>
             <div class="header-right">
                 <span class="badge badge-pro">PRO</span>
                 <span class="badge badge-free">🆓 GRATUIT</span>
                 <span class="badge badge-live">🔴 LIVE</span>
                 <span class="time" id="header-time">--:--:--</span>
-                <span class="status status-online" id="status-text">● CONNECTÉ</span>
+                <span class="status-online" id="status-text">● CONNECTÉ</span>
             </div>
         </div>
 
@@ -265,32 +301,32 @@
         <div class="metrics-grid" id="metrics-grid">
             <div class="metric-card">
                 <div class="label">🚢 Navires</div>
-                <div class="value" id="vessels-count" style="color:#2962ff;">--</div>
+                <div class="value" id="vessels-count" style="color:var(--accent-blue);">--</div>
                 <div class="change" id="vessels-change">--</div>
             </div>
             <div class="metric-card">
                 <div class="label">📦 TEU Total</div>
-                <div class="value" id="total-teu" style="color:#ffd600;">--</div>
+                <div class="value" id="total-teu" style="color:var(--accent-yellow);">--</div>
                 <div class="change" id="avg-teu">Moy: --</div>
             </div>
             <div class="metric-card">
-                <div class="label">💶 Valeur Marchandise</div>
-                <div class="value" id="total-value" style="color:#00c853;">--</div>
+                <div class="label">💶 Valeur</div>
+                <div class="value" id="total-value" style="color:var(--accent-green);">--</div>
                 <div class="change" id="value-change">--</div>
             </div>
             <div class="metric-card">
                 <div class="label">🏢 Compagnies</div>
-                <div class="value" id="companies-count" style="color:#2962ff;">--</div>
+                <div class="value" id="companies-count" style="color:var(--accent-blue);">--</div>
                 <div class="change" id="companies-change">Actives</div>
             </div>
             <div class="metric-card">
-                <div class="label">📊 Types de navires</div>
-                <div class="value" id="types-count" style="color:#ffd600;">--</div>
+                <div class="label">📊 Types</div>
+                <div class="value" id="types-count" style="color:var(--accent-yellow);">--</div>
                 <div class="change" id="types-change">Catégories</div>
             </div>
             <div class="metric-card">
                 <div class="label">⚡ En route</div>
-                <div class="value" id="route-count" style="color:#2962ff;">--</div>
+                <div class="value" id="route-count" style="color:var(--accent-blue);">--</div>
                 <div class="change" id="route-change">--</div>
             </div>
         </div>
@@ -330,21 +366,26 @@
                     <div class="card-title">
                         <span>⛴️ Navires en temps réel</span>
                         <div>
-                            <span id="vessel-count-display" style="color:#78909c;font-size:0.7rem;">0</span>
+                            <span id="vessel-count-display" style="color:var(--text-secondary);font-size:0.7rem;">0</span>
                             <button class="btn" onclick="refreshVessels()" style="padding:2px 8px;margin-left:5px;">🔄</button>
                         </div>
                     </div>
                     <div class="scroll-container" id="vessels-container"><div class="spinner"></div></div>
                 </div>
 
-                <!-- CHART -->
+                <!-- CHARTS -->
                 <div class="card">
                     <div class="card-title">
-                        <span>📊 Statistiques Commerciales</span>
+                        <span>📊 Analyses</span>
                         <span class="action" onclick="refreshChart()">🔄 Actualiser</span>
                     </div>
-                    <div class="chart-wrapper">
-                        <canvas id="tradeChart"></canvas>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div class="chart-wrapper" style="height:180px;">
+                            <canvas id="tradeChart"></canvas>
+                        </div>
+                        <div class="chart-wrapper" style="height:180px;">
+                            <canvas id="pieChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -353,13 +394,16 @@
             <div>
                 <!-- MAP -->
                 <div class="card">
-                    <div class="card-title"><span>🗺️ Carte des navires</span></div>
+                    <div class="card-title">
+                        <span>🗺️ Carte</span>
+                        <span class="action" onclick="toggleFullscreenMap()">⛶ Agrandir</span>
+                    </div>
                     <div id="map"></div>
                 </div>
 
                 <!-- STATS -->
                 <div class="card">
-                    <div class="card-title"><span>📈 Statistiques avancées</span></div>
+                    <div class="card-title"><span>📈 Statistiques</span></div>
                     <div class="stats-small" id="stats-container">
                         <div class="stat-item"><div class="label">Poids total</div><div class="value" id="total-weight">--</div></div>
                         <div class="stat-item"><div class="label">Cargaisons</div><div class="value" id="cargo-count">--</div></div>
@@ -381,6 +425,7 @@
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <button class="btn btn-export" onclick="exportCSV()">📄 CSV</button>
                         <button class="btn btn-export" onclick="exportExcel()">📊 Excel</button>
+                        <button class="btn btn-export" onclick="exportPDF()">📑 PDF</button>
                         <button class="btn btn-primary" onclick="refreshData()">🔄 Rafraîchir</button>
                     </div>
                 </div>
@@ -395,7 +440,7 @@
 
         <!-- FOOTER -->
         <div class="footer">
-            <div>IMPORT-EXPORT MONITOR PRO v3.0 • <span style="color:#2962ff;">⚡ Données en temps réel</span> • 100% gratuit</div>
+            <div>IMPORT-EXPORT MONITOR PRO v3.0 • <span style="color:var(--accent-blue);">⚡ Données en temps réel</span> • 100% gratuit</div>
             <div class="links">
                 <a href="/"><i class="fas fa-home"></i> Accueil</a>
                 <a href="#" onclick="location.reload()"><i class="fas fa-sync"></i> Rafraîchir</a>
@@ -410,7 +455,9 @@
         const API_BASE = 'http://localhost:5001/api';
         let map = null;
         let chartInstance = null;
+        let pieChartInstance = null;
         let vesselsData = [];
+        let isMapFullscreen = false;
 
         // ================================================================
         // API CALLS
@@ -424,7 +471,7 @@
         }
 
         // ================================================================
-        // CHART
+        // CHARTS
         // ================================================================
         function updateTradeChart(trade) {
             if (!trade) return;
@@ -439,7 +486,7 @@
             const container = canvas.parentElement;
             if (container) {
                 canvas.width = container.clientWidth || 500;
-                canvas.height = container.clientHeight || 220;
+                canvas.height = container.clientHeight || 180;
             }
 
             chartInstance = new Chart(ctx, {
@@ -458,7 +505,7 @@
                             borderColor: ['#2962ff', '#ff6b00', '#ff1744'],
                             borderWidth: 1,
                             borderRadius: 4,
-                            maxBarThickness: 40
+                            maxBarThickness: 30
                         },
                         {
                             label: 'Réunion (Mds €)',
@@ -471,7 +518,7 @@
                             borderColor: ['rgba(41,98,255,0.6)', 'rgba(255,107,0,0.6)', 'rgba(255,23,68,0.6)'],
                             borderWidth: 1,
                             borderRadius: 4,
-                            maxBarThickness: 40
+                            maxBarThickness: 30
                         }
                     ]
                 },
@@ -480,7 +527,7 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            labels: { color: '#e8edf5', font: { size: 9 }, boxWidth: 10, padding: 6 }
+                            labels: { color: '#e8edf5', font: { size: 8 }, boxWidth: 8, padding: 4 }
                         }
                     },
                     scales: {
@@ -499,6 +546,62 @@
             });
         }
 
+        function updatePieChart(vessels) {
+            if (!vessels || !vessels.length) return;
+            if (pieChartInstance) { try { pieChartInstance.destroy(); } catch(e) {} pieChartInstance = null; }
+
+            const canvas = document.getElementById('pieChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const container = canvas.parentElement;
+            if (container) {
+                canvas.width = container.clientWidth || 500;
+                canvas.height = container.clientHeight || 180;
+            }
+
+            // Compter les types de navires
+            const types = {};
+            vessels.forEach(v => {
+                types[v.type] = (types[v.type] || 0) + 1;
+            });
+
+            const labels = Object.keys(types);
+            const data = Object.values(types);
+            const colors = ['#2962ff', '#ff6b00', '#00c853', '#ffd600', '#ff1744', '#9c27b0'];
+
+            pieChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: '#131b2e',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#e8edf5',
+                                font: { size: 8 },
+                                boxWidth: 8,
+                                padding: 4
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
         // ================================================================
         // LOAD DATA
         // ================================================================
@@ -513,11 +616,13 @@
                 updateAlerts(data.alerts || []);
                 updateMap(vesselsData);
                 updateStats(data.stats || {});
+                updatePieChart(vesselsData);
                 updateHeader(data.timestamp);
                 if (data.trade) {
                     setTimeout(() => updateTradeChart(data.trade), 50);
                 }
                 updateProducts(data.trade);
+                document.getElementById('vessel-count-header').textContent = vesselsData.length;
             }
         }
 
@@ -601,9 +706,9 @@
             ports.forEach(p => {
                 html += `
                     <div style="background:#0d1628;padding:8px 12px;border-radius:4px;margin-bottom:6px;border-left:3px solid #2962ff;">
-                        <div style="font-weight:600;font-size:0.85rem;">⚓ ${p.name}</div>
-                        <div style="font-size:0.7rem;color:#78909c;">${p.city}, ${p.country}</div>
-                        <div style="display:flex;gap:15px;margin-top:3px;font-size:0.65rem;color:#78909c;">
+                        <div style="font-weight:600;font-size:0.8rem;">⚓ ${p.name}</div>
+                        <div style="font-size:0.65rem;color:#78909c;">${p.city}, ${p.country}</div>
+                        <div style="display:flex;gap:12px;margin-top:3px;font-size:0.6rem;color:#78909c;">
                             <span>📦 ${p.conteneurs}</span>
                             <span>🚢 ${p.trafic}</span>
                             <span>⚓ ${p.quais} quais</span>
@@ -640,7 +745,7 @@
                     <span class="icon">${a.icon || 'ℹ️'}</span>
                     <div>
                         <div class="title">${a.title || a.message}</div>
-                        <div style="font-size:0.7rem;color:#78909c;">${a.message}</div>
+                        <div style="font-size:0.65rem;color:#78909c;">${a.message}</div>
                     </div>
                     <span class="time">${new Date(a.time).toLocaleTimeString()}</span>
                 </div>
@@ -652,8 +757,7 @@
             if (!map) {
                 map = L.map('map').setView([-20.9386, 55.2834], 8);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap',
-                    className: 'map-tiles'
+                    attribution: '© OpenStreetMap'
                 }).addTo(map);
             }
             map.eachLayer(layer => {
@@ -670,7 +774,7 @@
                 }[v.status] || '#2962ff';
 
                 const marker = L.circleMarker([v.lat, v.lon], {
-                    radius: 5 + (v.teu || 0) / 5000,
+                    radius: 4 + Math.min(v.teu || 0, 10000) / 2000,
                     fillColor: color,
                     color: color,
                     weight: 1,
@@ -679,7 +783,7 @@
                 }).addTo(map);
 
                 marker.bindPopup(`
-                    <div style="font-family:sans-serif;font-size:12px;">
+                    <div style="font-family:sans-serif;font-size:11px;">
                         <b>${v.name}</b><br>
                         Statut: ${v.status}<br>
                         Vitesse: ${v.speed} nœuds<br>
@@ -703,9 +807,9 @@
                 const color = p.croissance > 0 ? '#00c853' : '#ff1744';
                 html += `
                     <div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #1e2d4d;">
-                        <span style="font-size:0.8rem;">${p.produit}</span>
-                        <span style="font-size:0.75rem;color:#ffd600;">${p.valeur} Mds €</span>
-                        <span style="font-size:0.6rem;color:${color};">${p.croissance > 0 ? '+' : ''}${p.croissance}%</span>
+                        <span style="font-size:0.75rem;">${p.produit}</span>
+                        <span style="font-size:0.7rem;color:#ffd600;">${p.valeur} Mds €</span>
+                        <span style="font-size:0.55rem;color:${color};">${p.croissance > 0 ? '+' : ''}${p.croissance}%</span>
                     </div>
                 `;
             });
@@ -748,22 +852,54 @@
         }
 
         // ================================================================
+        // MAP FULLSCREEN
+        // ================================================================
+        function toggleFullscreenMap() {
+            const mapContainer = document.getElementById('map');
+            if (!isMapFullscreen) {
+                if (mapContainer.requestFullscreen) {
+                    mapContainer.requestFullscreen();
+                } else if (mapContainer.webkitRequestFullscreen) {
+                    mapContainer.webkitRequestFullscreen();
+                }
+                isMapFullscreen = true;
+                setTimeout(() => map.invalidateSize(), 500);
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+                isMapFullscreen = false;
+                setTimeout(() => map.invalidateSize(), 500);
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            isMapFullscreen = !!document.fullscreenElement;
+            setTimeout(() => map.invalidateSize(), 500);
+        });
+
+        // ================================================================
         // REFRESH
         // ================================================================
         function refreshChart() {
             if (chartInstance) { try { chartInstance.destroy(); } catch(e) {} chartInstance = null; }
+            if (pieChartInstance) { try { pieChartInstance.destroy(); } catch(e) {} pieChartInstance = null; }
             apiCall('/trade').then(trade => { if (trade) setTimeout(() => updateTradeChart(trade), 50); });
+            if (vesselsData.length) updatePieChart(vesselsData);
         }
 
         async function refreshData() { await loadData(); }
 
         async function refreshVessels() {
             const vessels = await apiCall('/vessels');
-            if (vessels) { vesselsData = vessels; updateVessels(vessels); }
+            if (vessels) { vesselsData = vessels; updateVessels(vessels); updatePieChart(vessels); }
         }
 
         function exportCSV() { window.open(`${API_BASE}/export/csv`); }
         function exportExcel() { window.open(`${API_BASE}/export/excel`); }
+        function exportPDF() { window.open(`${API_BASE}/export/pdf`); }
 
         // ================================================================
         // RESIZE
@@ -778,12 +914,24 @@
                         const container = canvas.parentElement;
                         if (container) {
                             canvas.width = container.clientWidth || 500;
-                            canvas.height = container.clientHeight || 220;
+                            canvas.height = container.clientHeight || 180;
                             chartInstance.resize();
                         }
                     } catch(e) {}
                 }
-            }, 200);
+                if (pieChartInstance) {
+                    try {
+                        const canvas = document.getElementById('pieChart');
+                        const container = canvas.parentElement;
+                        if (container) {
+                            canvas.width = container.clientWidth || 500;
+                            canvas.height = container.clientHeight || 180;
+                            pieChartInstance.resize();
+                        }
+                    } catch(e) {}
+                }
+                if (map) map.invalidateSize();
+            }, 300);
         }
 
         // ================================================================
@@ -798,6 +946,9 @@
             });
 
             window.addEventListener('resize', handleResize);
+
+            console.log('🚢 IMPORT-EXPORT MONITOR PRO v3.0');
+            console.log('📊 Dashboard chargé avec succès');
         });
     </script>
 </body>
