@@ -3,953 +3,825 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMPORT-EXPORT MONITOR PRO</title>
-
-    <!-- Leaflet -->
+    <title>S-WING REUNION PRO // CMD CENTER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
-        /* ============================================================
-           STYLE PROFESSIONNEL AMÉLIORÉ
-           ============================================================ */
         :root {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #131b2e;
-            --bg-card: #0d1628;
-            --border-color: #1e2d4d;
-            --text-primary: #e8edf5;
-            --text-secondary: #78909c;
-            --accent-blue: #2962ff;
-            --accent-green: #00c853;
-            --accent-orange: #ff6b00;
-            --accent-red: #ff1744;
-            --accent-yellow: #ffd600;
+            --bg-void: #030507;
+            --bg-panel: #0a0e12;
+            --border-dim: #152030;
+            --border-lit: #243448;
+            --c-main: #00ffc8;
+            --c-amber: #ffb800;
+            --c-red: #ff003c;
+            --c-blue: #00aaff;
+            --c-green: #40e080;
+            --text-hi: #e0f7f0;
+            --text-lo: #4a6a70;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'JetBrains Mono', monospace; background: var(--bg-void); color: var(--text-hi); overflow-x: hidden; }
+        body::before { content: ""; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,255,200,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,200,0.02) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+        body::after { content: ""; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px); pointer-events: none; z-index: 9999; }
 
-        body {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            padding: 10px;
-            transition: all 0.3s;
+        .cyber-panel { background: var(--bg-panel); border: 1px solid var(--border-dim); position: relative; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); padding: 16px 16px 16px 20px; transition: border-color 0.3s; }
+        .cyber-panel::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--c-main), transparent); opacity: 0.4; }
+        .cyber-panel:hover { border-color: rgba(0,255,200,0.2); }
+
+        .hdr { font-size: 10px; color: var(--text-lo); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .hdr i { color: var(--c-main); font-size: 11px; }
+        .hdr::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-dim), transparent); }
+
+        .kv { font-size: 22px; font-weight: 800; line-height: 1; color: var(--c-main); text-shadow: 0 0 8px rgba(0,255,200,0.3); transition: color 0.3s; }
+        .kv.nd { color: var(--text-lo); text-shadow: none; font-size: 16px; }
+
+        #map { width: 100%; height: 100%; background: #050809; }
+        .leaflet-container { background: #050809 !important; }
+        .leaflet-tile-pane { filter: saturate(0.2) brightness(0.35) contrast(1.3) hue-rotate(120deg); }
+        .leaflet-control-zoom a { background: var(--bg-panel) !important; color: var(--c-main) !important; border-color: var(--border-dim) !important; }
+        .map-vig { position: absolute; inset: 0; background: radial-gradient(circle at center, transparent 40%, var(--bg-void) 100%); pointer-events: none; z-index: 500; }
+
+        .v-mk { width: 10px; height: 10px; background: var(--c-main); transform: rotate(45deg); box-shadow: 0 0 6px var(--c-main); position: relative; }
+        .v-mk.slow { background: var(--c-amber); box-shadow: 0 0 6px var(--c-amber); }
+        .v-mk.stopped { background: var(--c-red); box-shadow: 0 0 6px var(--c-red); }
+        .v-mk::after { content: ""; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 1px solid inherit; transform: translate(-50%,-50%) rotate(-45deg); opacity: 0.4; animation: vping 2s infinite; }
+        @keyframes vping { 0% { width: 10px; height: 10px; opacity: 0.5; } 100% { width: 30px; height: 30px; opacity: 0; } }
+
+        /* Styles personnalisés pour les popups */
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-panel) !important;
+            color: var(--text-hi) !important;
+            border: 1px solid var(--c-main) !important;
+            border-radius: 2px !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            box-shadow: 0 0 30px rgba(0,255,200,0.15) !important;
+            padding: 0 !important;
+        }
+        .leaflet-popup-content {
+            margin: 12px 14px !important;
+            min-width: 300px !important;
+            max-width: 400px !important;
+        }
+        .leaflet-popup-tip {
+            background: var(--bg-panel) !important;
+            border: 1px solid var(--c-main) !important;
+        }
+        .leaflet-popup-close-button {
+            color: var(--c-red) !important;
+            font-size: 18px !important;
+            padding: 6px 8px !important;
+            opacity: 0.7 !important;
+            transition: opacity 0.2s !important;
+        }
+        .leaflet-popup-close-button:hover {
+            opacity: 1 !important;
         }
 
-        .container { max-width: 1600px; margin: 0 auto; }
+        .ll { font-size: 11px; border-bottom: 1px solid #15203010; padding: 4px 0; color: var(--text-lo); }
+        .ll .t { color: var(--c-main); margin-right: 8px; }
+        .ll .w { color: var(--c-amber); } .ll .e { color: var(--c-red); }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} } .blink { animation: blink 1.5s infinite; }
 
-        /* ============================================================
-           HEADER
-           ============================================================ */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg-void); } ::-webkit-scrollbar-thumb { background: var(--border-dim); }
+        .vt tr { border-bottom: 1px solid #15203030; transition: background 0.2s; } .vt tr:hover { background: rgba(0,255,200,0.03); }
 
-        .logo { font-size: 1.4rem; font-weight: 700; }
-        .logo span { color: var(--text-primary); }
-        .logo .live { color: var(--accent-green); font-size: 0.7rem; animation: pulse-green 1.5s infinite; }
-        @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .radar-sw { position: absolute; width: 100%; height: 100%; background: conic-gradient(from 0deg, transparent 0%, rgba(0,255,200,0.15) 8%, transparent 12%); animation: rrot 3s linear infinite; border-radius: 50%; }
+        @keyframes rrot { 100% { transform: rotate(360deg); } }
 
-        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .header-right .time { font-size: 0.8rem; color: var(--text-secondary); }
-        .status-online { background: var(--accent-green); color: white; padding: 3px 12px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; }
+        .tab-nav { display: flex; gap: 4px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border-dim); }
+        .tab-btn { font-size: 10px; padding: 8px 14px; background: transparent; color: var(--text-lo); border: 1px solid transparent; border-bottom: none; cursor: pointer; letter-spacing: 1px; transition: all 0.2s; white-space: nowrap; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+        .tab-btn.active { color: var(--c-main); border-color: var(--c-main); background: rgba(0,255,200,0.05); }
+        .tab-btn:hover { color: var(--text-hi); }
+        .tab-content { display: none; } .tab-content.active { display: block; }
 
-        .badge { padding: 3px 10px; border-radius: 4px; font-size: 0.6rem; font-weight: 600; display: inline-block; }
-        .badge-pro { background: var(--accent-blue); color: white; }
-        .badge-free { background: var(--accent-orange); color: white; }
-        .badge-live { background: var(--accent-red); color: white; animation: pulse-red 1.5s infinite; }
-        @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        .alert-bar { font-size: 10px; padding: 6px 12px; border-left: 3px solid; background: rgba(255,255,255,0.02); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+        .alert-ok { border-color: var(--c-main); color: var(--c-main); }
+        .alert-warn { border-color: var(--c-amber); color: var(--c-amber); }
+        .alert-err { border-color: var(--c-red); color: var(--c-red); }
 
-        /* ============================================================
-           METRICS
-           ============================================================ */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+        #boot-screen { position: fixed; inset: 0; z-index: 10001; background: var(--bg-void); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; transition: opacity 0.5s; }
+        #boot-screen.hide { opacity: 0; pointer-events: none; }
+        @keyframes boot-bar { 0%{width:0} 100%{width:100%} }
+        .boot-progress { width: 300px; height: 2px; background: var(--border-dim); position: relative; overflow: hidden; }
+        .boot-progress::after { content: ""; position: absolute; height: 100%; background: var(--c-main); box-shadow: 0 0 10px var(--c-main); animation: boot-bar 3s ease-in-out forwards; }
 
-        .metric-card {
-            background: var(--bg-secondary);
-            padding: 12px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s;
-            cursor: default;
-        }
-        .metric-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(41,98,255,0.1); }
-        .metric-card .label { font-size: 0.55rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; }
-        .metric-card .value { font-size: 1.3rem; font-weight: 700; margin-top: 3px; }
-        .metric-card .change { font-size: 0.65rem; margin-top: 2px; }
-        .change-up { color: var(--accent-green); }
-        .change-down { color: var(--accent-red); }
-
-        /* ============================================================
-           GRID
-           ============================================================ */
-        .main-grid { display: grid; grid-template-columns: 2.5fr 1fr; gap: 15px; }
-
-        .card {
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-        .card-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-title .action { font-size: 0.6rem; color: var(--accent-blue); cursor: pointer; }
-        .card-title .action:hover { text-decoration: underline; }
-
-        /* ============================================================
-           VESSELS
-           ============================================================ */
-        .vessel-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 0.8fr;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border-color);
-            align-items: center;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .vessel-item:hover { background: #1a2440; }
-        .vessel-item .name { font-weight: 600; font-size: 0.85rem; }
-        .vessel-item .detail { font-size: 0.6rem; color: var(--text-secondary); }
-        .vessel-item .status-badge { font-size: 0.55rem; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-        .status-quai { background: rgba(0,200,83,0.2); color: var(--accent-green); }
-        .status-route { background: rgba(41,98,255,0.2); color: var(--accent-blue); }
-        .status-operation { background: rgba(255,214,0,0.2); color: var(--accent-yellow); }
-        .status-attente { background: rgba(255,23,68,0.2); color: var(--accent-red); }
-        .vessel-item .teu { font-weight: 600; color: var(--accent-yellow); }
-
-        /* ============================================================
-           ALERTS
-           ============================================================ */
-        .alert-item {
-            padding: 8px 12px;
-            border-left: 3px solid;
-            margin-bottom: 4px;
-            background: var(--bg-card);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.8rem;
-            border-radius: 0 4px 4px 0;
-        }
-        .alert-warning { border-color: var(--accent-yellow); }
-        .alert-info { border-color: var(--accent-blue); }
-        .alert-success { border-color: var(--accent-green); }
-        .alert-item .icon { font-size: 1rem; }
-        .alert-item .title { font-weight: 600; }
-        .alert-item .time { font-size: 0.55rem; color: var(--text-secondary); margin-left: auto; }
-
-        /* ============================================================
-           MAP
-           ============================================================ */
-        #map { height: 280px; border-radius: 6px; border: 1px solid var(--border-color); }
-
-        /* ============================================================
-           CHART
-           ============================================================ */
-        .chart-wrapper { position: relative; height: 220px; width: 100%; }
-        #tradeChart { width: 100% !important; height: 100% !important; }
-
-        /* ============================================================
-           FILTERS
-           ============================================================ */
-        .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-        .filters select, .filters input {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 0.7rem;
-        }
-        .filters select:focus, .filters input:focus { outline: none; border-color: var(--accent-blue); }
-        .filters select option { background: var(--bg-card); }
-
-        /* ============================================================
-           BUTTONS
-           ============================================================ */
-        .btn {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn:hover { background: #1a2440; border-color: var(--accent-blue); }
-        .btn-primary { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
-        .btn-primary:hover { background: #1a4fc4; }
-        .btn-export { border-color: var(--accent-orange); color: var(--accent-orange); }
-        .btn-export:hover { background: rgba(255,107,0,0.2); }
-
-        /* ============================================================
-           SCROLL
-           ============================================================ */
-        .scroll-container { max-height: 380px; overflow-y: auto; }
-        .scroll-container::-webkit-scrollbar { width: 4px; }
-        .scroll-container::-webkit-scrollbar-track { background: var(--bg-card); }
-        .scroll-container::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 2px; }
-
-        /* ============================================================
-           STATS
-           ============================================================ */
-        .stats-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-        .stat-item { background: var(--bg-card); padding: 8px 10px; border-radius: 4px; text-align: center; }
-        .stat-item .label { font-size: 0.5rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-item .value { font-size: 1rem; font-weight: 700; }
-
-        /* ============================================================
-           FOOTER
-           ============================================================ */
-        .footer {
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-            margin-top: 15px;
-            text-align: center;
-            font-size: 0.6rem;
-            color: var(--text-secondary);
-        }
-        .footer .links { display: flex; justify-content: center; gap: 15px; margin-top: 4px; }
-        .footer .links a { color: var(--text-secondary); text-decoration: none; }
-        .footer .links a:hover { color: var(--accent-blue); }
-
-        .spinner {
-            border: 2px solid var(--border-color);
-            border-top: 2px solid var(--accent-blue);
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 0.8s linear infinite;
-            margin: 10px auto;
-        }
-        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
-        @media (max-width: 1200px) {
-            .main-grid { grid-template-columns: 1fr; }
-            .metrics-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (max-width: 768px) {
-            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-            .vessel-item { grid-template-columns: 1fr; gap: 4px; }
-            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
-        }
-        @media (max-width: 480px) {
-            .metrics-grid { grid-template-columns: 1fr; }
-        }
+        #error-screen { position: fixed; inset: 0; z-index: 10000; background: var(--bg-void); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; }
+        #error-screen.active { display: flex; }
+        .err-box { border: 1px solid var(--c-red); clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); padding: 40px 60px; background: rgba(255,0,60,0.04); max-width: 600px; }
+        @keyframes glitch { 0%,100%{transform:translate(0)} 20%{transform:translate(-2px,1px)} 40%{transform:translate(2px,-1px)} 60%{transform:translate(-1px,-1px)} 80%{transform:translate(1px,2px)} }
+        .glitch { animation: glitch 0.3s infinite; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <!-- HEADER -->
-        <div class="header">
-            <div>
-                <div class="logo">🚢 IMPORT<span>-EXPORT</span> <span class="live">● LIVE</span></div>
-                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">
-                    <i class="fas fa-map-pin"></i> La Réunion • <span id="vessel-count-header">0</span> navires actifs
-                </div>
-            </div>
-            <div class="header-right">
-                <span class="badge badge-pro">PRO</span>
-                <span class="badge badge-free">🆓 GRATUIT</span>
-                <span class="badge badge-live">🔴 LIVE</span>
-                <span class="time" id="header-time">--:--:--</span>
-                <span class="status-online" id="status-text">● CONNECTÉ</span>
-            </div>
-        </div>
+<body class="relative z-10">
 
-        <!-- METRICS -->
-        <div class="metrics-grid" id="metrics-grid">
-            <div class="metric-card">
-                <div class="label">🚢 Navires</div>
-                <div class="value" id="vessels-count" style="color:var(--accent-blue);">--</div>
-                <div class="change" id="vessels-change">--</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">📦 TEU Total</div>
-                <div class="value" id="total-teu" style="color:var(--accent-yellow);">--</div>
-                <div class="change" id="avg-teu">Moy: --</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">💶 Valeur</div>
-                <div class="value" id="total-value" style="color:var(--accent-green);">--</div>
-                <div class="change" id="value-change">--</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">🏢 Compagnies</div>
-                <div class="value" id="companies-count" style="color:var(--accent-blue);">--</div>
-                <div class="change" id="companies-change">Actives</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">📊 Types</div>
-                <div class="value" id="types-count" style="color:var(--accent-yellow);">--</div>
-                <div class="change" id="types-change">Catégories</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">⚡ En route</div>
-                <div class="value" id="route-count" style="color:var(--accent-blue);">--</div>
-                <div class="change" id="route-change">--</div>
-            </div>
-        </div>
-
-        <!-- ALERTS -->
-        <div id="alerts-container" style="margin-bottom:10px;"></div>
-
-        <!-- MAIN GRID -->
-        <div class="main-grid">
-            <!-- LEFT COLUMN -->
-            <div>
-                <!-- FILTERS -->
-                <div class="card">
-                    <div class="filters">
-                        <select id="filter-status">
-                            <option value="all">Tous les statuts</option>
-                            <option value="En route">En route</option>
-                            <option value="À quai">À quai</option>
-                            <option value="En opération">En opération</option>
-                            <option value="En attente">En attente</option>
-                        </select>
-                        <select id="filter-type">
-                            <option value="all">Tous les types</option>
-                            <option value="Porte-conteneurs">Porte-conteneurs</option>
-                            <option value="Cargo">Cargo</option>
-                            <option value="Pétrolier">Pétrolier</option>
-                            <option value="Vraquier">Vraquier</option>
-                        </select>
-                        <input type="text" id="filter-search" placeholder="🔍 Rechercher..." style="flex:1;">
-                        <button class="btn btn-primary" onclick="applyFilters()">Filtrer</button>
-                        <button class="btn" onclick="clearFilters()">✕</button>
-                    </div>
-                </div>
-
-                <!-- VESSELS -->
-                <div class="card">
-                    <div class="card-title">
-                        <span>⛴️ Navires en temps réel</span>
-                        <div>
-                            <span id="vessel-count-display" style="color:var(--text-secondary);font-size:0.7rem;">0</span>
-                            <button class="btn" onclick="refreshVessels()" style="padding:2px 8px;margin-left:5px;">🔄</button>
-                        </div>
-                    </div>
-                    <div class="scroll-container" id="vessels-container"><div class="spinner"></div></div>
-                </div>
-
-                <!-- CHARTS -->
-                <div class="card">
-                    <div class="card-title">
-                        <span>📊 Analyses</span>
-                        <span class="action" onclick="refreshChart()">🔄 Actualiser</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                        <div class="chart-wrapper" style="height:180px;">
-                            <canvas id="tradeChart"></canvas>
-                        </div>
-                        <div class="chart-wrapper" style="height:180px;">
-                            <canvas id="pieChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT COLUMN -->
-            <div>
-                <!-- MAP -->
-                <div class="card">
-                    <div class="card-title">
-                        <span>🗺️ Carte</span>
-                        <span class="action" onclick="toggleFullscreenMap()">⛶ Agrandir</span>
-                    </div>
-                    <div id="map"></div>
-                </div>
-
-                <!-- STATS -->
-                <div class="card">
-                    <div class="card-title"><span>📈 Statistiques</span></div>
-                    <div class="stats-small" id="stats-container">
-                        <div class="stat-item"><div class="label">Poids total</div><div class="value" id="total-weight">--</div></div>
-                        <div class="stat-item"><div class="label">Cargaisons</div><div class="value" id="cargo-count">--</div></div>
-                        <div class="stat-item"><div class="label">Navires/compagnie</div><div class="value" id="ships-per-company">--</div></div>
-                        <div class="stat-item"><div class="label">TEU moyen</div><div class="value" id="avg-teu-stat">--</div></div>
-                    </div>
-                </div>
-
-                <!-- PORTS -->
-                <div class="card">
-                    <div class="card-title"><span>⚓ Ports</span></div>
-                    <div id="ports-container"><div class="spinner"></div></div>
-                </div>
-
-                <!-- WEATHER & EXPORT -->
-                <div class="card">
-                    <div class="card-title"><span>🌤️ Météo & Export</span></div>
-                    <div id="weather-container" style="font-size:0.8rem;margin-bottom:8px;"><div class="spinner"></div></div>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button class="btn btn-export" onclick="exportCSV()">📄 CSV</button>
-                        <button class="btn btn-export" onclick="exportExcel()">📊 Excel</button>
-                        <button class="btn btn-export" onclick="exportPDF()">📑 PDF</button>
-                        <button class="btn btn-primary" onclick="refreshData()">🔄 Rafraîchir</button>
-                    </div>
-                </div>
-
-                <!-- TOP EXPORT -->
-                <div class="card">
-                    <div class="card-title"><span>🏆 Top Exportations</span></div>
-                    <div id="top-products"><div class="spinner"></div></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- FOOTER -->
-        <div class="footer">
-            <div>IMPORT-EXPORT MONITOR PRO v3.0 • <span style="color:var(--accent-blue);">⚡ Données en temps réel</span> • 100% gratuit</div>
-            <div class="links">
-                <a href="/"><i class="fas fa-home"></i> Accueil</a>
-                <a href="#" onclick="location.reload()"><i class="fas fa-sync"></i> Rafraîchir</a>
-            </div>
-        </div>
+    <!-- ECRAN DE CHARGEMENT -->
+    <div id="boot-screen">
+        <div class="text-xs tracking-[6px] text-[var(--c-main)]">S-WING REUNION PRO</div>
+        <div class="text-[10px] text-[var(--text-lo)] tracking-widest" id="boot-status">INITIALISATION SYSTEME...</div>
+        <div class="boot-progress"></div>
     </div>
 
+    <!-- ECRAN D'ERREUR CRITIQUE -->
+    <div id="error-screen">
+        <div class="err-box">
+            <div class="text-[var(--c-red)] text-4xl font-bold tracking-widest glitch mb-4">CONNEXION PERDUE</div>
+            <div class="text-[var(--text-lo)] text-xs leading-6 mb-6">
+                SERVEUR FLASK INJOIGNABLE<br>
+                VERIFIEZ QUE <span class="text-[var(--text-hi)]">SERV.PY</span> EST ACTIF SUR <span class="text-[var(--c-amber)]">PORT 5001</span><br><br>
+                <span class="text-[var(--text-lo)]">$</span> <span class="text-[var(--c-main)]">python serv.py</span>
+            </div>
+            <button onclick="location.reload()" class="text-xs tracking-widest border border-[var(--c-red)] px-6 py-2 text-[var(--c-red)] hover:bg-[rgba(255,0,60,0.1)] transition-colors cursor-pointer">
+                <i class="fa-solid fa-rotate-right mr-2"></i>REESSAYER
+            </button>
+        </div>
+        <div class="text-[10px] text-[var(--text-lo)] mt-8" id="err-detail">---</div>
+    </div>
+
+    <!-- HEADER TACTIQUE -->
+    <header class="border-b border-[#152030] bg-[#030507cc] backdrop-blur-sm sticky top-0 z-[1000] px-4 py-2">
+        <div class="max-w-[2400px] mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 border border-[var(--c-main)] px-3 py-1" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
+                    <i class="fa-solid fa-satellite-dish text-[var(--c-main)] text-sm"></i>
+                    <span class="text-sm font-bold tracking-widest text-[var(--c-main)]">S-WING</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="text-xs font-bold tracking-wider text-[var(--text-hi)]">REUNION PORT COMMAND</div>
+                    <div class="text-[10px] tracking-widest text-[var(--text-lo)]">LE PORT 97420 // INDIAN OCEAN</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-6 text-xs">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-[var(--text-lo)]" id="status-dot"></div>
+                    <span class="text-[var(--text-lo)]" id="status-text">INIT...</span>
+                </div>
+                <div class="hidden sm:flex items-center gap-2 text-[var(--text-lo)]">
+                    <i class="fa-solid fa-wave-square text-[var(--c-blue)]"></i>
+                    <span>PKT: <span id="msg-count" class="text-[var(--text-hi)]">0</span></span>
+                </div>
+                <div class="font-bold tracking-wider text-[var(--c-amber)]" id="clock">--:--:--</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="p-3 max-w-[2400px] mx-auto space-y-3" id="main-content">
+
+        <!-- BARRE D'ALERTES DYNAMIQUES -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2" id="alerts-container">
+            <div class="alert-bar alert-ok"><i class="fa-solid fa-check-circle"></i> <span>SYSTEME: INITIALISATION...</span></div>
+            <div class="alert-bar alert-ok"><i class="fa-solid fa-ship"></i> <span>TRAFFIC: ATTENTE DONNEES...</span></div>
+            <div class="alert-bar alert-ok"><i class="fa-solid fa-cloud-sun"></i> <span>METEO: ANALYSE EN COURS...</span></div>
+        </div>
+
+        <!-- 8 KPIs PORTUAIRES -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-box"></i> CONTENEURS</div><div class="kv nd" id="k-cont">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">TRAITES</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-warehouse"></i> OCP. QUAIS</div><div class="kv nd" id="k-ocp">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">TAUX %</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-face-smile"></i> SATISFACTION</div><div class="kv nd" id="k-sat">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">CLIENTS %</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-clock"></i> RETARDS</div><div class="kv nd" id="k-ret">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">MOY. (H)</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-gauge"></i> EFFICACITE</div><div class="kv nd" id="k-eff">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">OPS %</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-rotate"></i> ROTATION</div><div class="kv nd" id="k-rot">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">JOURS</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-euro-sign"></i> COUT/TEU</div><div class="kv nd" id="k-cost">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">EUROS</div></div>
+            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-leaf"></i> CO2</div><div class="kv nd" id="k-co2">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">TONNES</div></div>
+        </div>
+
+        <!-- NAVIGATION PAR ONGLETS -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('tab-map', this)"><i class="fa-solid fa-map-location-dot mr-2"></i>CARTE & AIS</button>
+            <button class="tab-btn" onclick="switchTab('tab-analytics', this)"><i class="fa-solid fa-chart-line mr-2"></i>ANALYTICS</button>
+            <button class="tab-btn" onclick="switchTab('tab-ia', this)"><i class="fa-solid fa-brain mr-2"></i>PREDICTIONS IA</button>
+            <button class="tab-btn" onclick="switchTab('tab-ops', this)"><i class="fa-solid fa-list-check mr-2"></i>OPERATIONS</button>
+            <button class="tab-btn" onclick="switchTab('tab-reports', this)"><i class="fa-solid fa-file-export mr-2"></i>RAPPORTS & EXPORT</button>
+        </div>
+
+        <!-- TAB 1: CARTE & AIS -->
+        <div id="tab-map" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-3" style="height:550px;">
+                <div class="lg:col-span-3 cyber-panel relative p-0 !overflow-hidden">
+                    <div class="absolute top-3 left-4 z-[1000]"><div class="text-[10px] tracking-widest text-[var(--c-main)] bg-[#030507cc] px-2 py-1 border border-[var(--border-dim)]">// MAP 21.115°S 55.536°E</div></div>
+                    <div id="map"></div>
+                    <div class="map-vig"></div>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <div class="cyber-panel flex-1">
+                        <div class="hdr"><i class="fa-solid fa-cloud-bolt"></i> METEO MARITIME</div>
+                        <div class="space-y-3 text-xs" id="weather-panel"><div class="text-center text-[var(--text-lo)] py-8">ATTENTE...</div></div>
+                    </div>
+                    <div class="cyber-panel relative flex flex-col items-center justify-center" style="min-height:150px;">
+                        <div class="hdr w-full"><i class="fa-solid fa-crosshairs"></i> PROXIMITE</div>
+                        <div class="relative w-24 h-24 rounded-full border border-[var(--border-dim)] flex items-center justify-center">
+                            <div class="absolute w-1/2 h-1/2 border-r border-b border-[var(--border-dim)] rounded-br-full"></div>
+                            <div class="radar-sw"></div>
+                            <div class="w-1.5 h-1.5 bg-[var(--c-main)] rounded-full z-10 shadow-[0_0_6px_var(--c-main)]"></div>
+                        </div>
+                        <div class="absolute bottom-2 right-4 text-[10px] text-[var(--text-lo)]" id="radar-ct">0 TARGETS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ANALYTICS -->
+        <div id="tab-analytics" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-chart-pie"></i> TYPES NAVIRES (AIS)</div><div style="height:280px;position:relative;"><canvas id="ch-type"></canvas></div></div>
+                <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-signal"></i> DISTRIBUTION VITESSES</div><div style="height:280px;"><canvas id="ch-spd"></canvas></div></div>
+            </div>
+            <div class="cyber-panel mt-3">
+                <div class="hdr"><i class="fa-solid fa-terminal"></i> SYS.LOG LIVE</div>
+                <div class="overflow-y-auto overflow-x-hidden" style="max-height:200px;" id="log-box"><div class="ll"><span class="t">[--:--:--]</span> SYSTEM BOOT...</div></div>
+            </div>
+        </div>
+
+        <!-- TAB 3: PREDICTIONS IA -->
+        <div id="tab-ia" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <div class="lg:col-span-2 cyber-panel">
+                    <div class="hdr"><i class="fa-solid fa-brain"></i> MODELE PREDICTIF TRAFIC (J+7)</div>
+                    <div style="height:300px;"><canvas id="ch-pred"></canvas></div>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <div class="cyber-panel flex-1">
+                        <div class="hdr"><i class="fa-solid fa-chart-simple"></i> METRIQUES IA</div>
+                        <div class="space-y-4 text-xs mt-4">
+                            <div class="flex justify-between"><span class="text-[var(--text-lo)]">TENDANCE</span><span id="ia-trend" class="font-bold">N/D</span></div>
+                            <div class="flex justify-between"><span class="text-[var(--text-lo)]">PIC PREVU</span><span id="ia-peak" class="font-bold text-[var(--c-amber)]">N/D</span></div>
+                            <div class="flex justify-between"><span class="text-[var(--text-lo)]">CONFIANCE</span><span id="ia-conf" class="font-bold text-[var(--c-main)]">N/D</span></div>
+                            <div class="w-full h-1 bg-[var(--border-dim)] mt-2"><div class="h-full bg-[var(--c-main)]" id="ia-conf-bar" style="width:0%"></div></div>
+                        </div>
+                    </div>
+                    <div class="cyber-panel flex-1">
+                        <div class="hdr"><i class="fa-solid fa-bullseye"></i> ACTIONS SUGGEREES</div>
+                        <div class="text-xs text-[var(--text-lo)] mt-2" id="ia-actions">EN ATTENTE D'ANALYSE...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: OPERATIONS (TABLE COMPLETE) -->
+        <div id="tab-ops" class="tab-content">
+            <div class="cyber-panel">
+                <div class="hdr"><i class="fa-solid fa-table-list"></i> REGISTRE COMPLET FLOTTE <span class="ml-auto text-[var(--c-main)]" id="vt-count">0</span></div>
+                <div class="overflow-x-auto" style="max-height:500px;overflow-y:auto;">
+                    <table class="w-full text-xs vt">
+                        <thead class="sticky top-0 bg-[var(--bg-panel)] z-10">
+                            <tr class="text-left text-[var(--text-lo)] border-b border-[var(--border-dim)]">
+                                <th class="py-2 px-2">MMSI</th>
+                                <th class="py-2 px-2">NOM</th>
+                                <th class="py-2 px-2">TYPE / CARGO</th>
+                                <th class="py-2 px-2">DESTINATION</th>
+                                <th class="py-2 px-2 text-right">LONG.(M)</th>
+                                <th class="py-2 px-2 text-right">TIRANT(M)</th>
+                                <th class="py-2 px-2 text-right">LAT</th>
+                                <th class="py-2 px-2 text-right">LNG</th>
+                                <th class="py-2 px-2 text-right">VIT(KTS)</th>
+                                <th class="py-2 px-2 text-right">CAP/HDG</th>
+                                <th class="py-2 px-2">ETA</th>
+                                <th class="py-2 px-2">UPDATE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vt-body"><tr><td colspan="12" class="text-center text-[var(--text-lo)] py-8">ATTENTE DONNEES AIS...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: RAPPORTS & EXPORT -->
+        <div id="tab-reports" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-file-csv text-3xl text-[var(--c-main)] mb-4"></i>
+                    <div class="text-sm font-bold mb-2">EXPORT CSV</div>
+                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                </div>
+                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-file-excel text-3xl text-[var(--c-green)] mb-4"></i>
+                    <div class="text-sm font-bold mb-2">EXPORT EXCEL</div>
+                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                </div>
+                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-file-pdf text-3xl text-[var(--c-red)] mb-4"></i>
+                    <div class="text-sm font-bold mb-2">RAPPORT PDF</div>
+                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                </div>
+                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-file-code text-3xl text-[var(--c-blue)] mb-4"></i>
+                    <div class="text-sm font-bold mb-2">EXPORT JSON</div>
+                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                </div>
+            </div>
+            <div class="cyber-panel mt-3">
+                <div class="hdr"><i class="fa-solid fa-circle-info"></i> CONFIGURATION SYSTEME</div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mt-2">
+                    <div><span class="text-[var(--text-lo)]">CLE API AIS:</span><br><span class="text-[var(--c-amber)]">***********aba3c</span></div>
+                    <div><span class="text-[var(--text-lo)]">BOUNDING BOX:</span><br><span>[-21.5, 54.5] -> [-20.5, 56.5]</span></div>
+                    <div><span class="text-[var(--text-lo)]">HISTORIQUE:</span><br><span>100 POS / NAVIRE</span></div>
+                    <div><span class="text-[var(--text-lo)]">STATUS WS:</span><br><span id="cfg-ws" class="text-[var(--c-red)]">DECONNECTE</span></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-[#152030] mt-4 px-4 py-2 text-center text-[10px] text-[var(--text-lo)] tracking-widest">
+        S-WING REUNION PRO v2.0 // ZERO SIMULATION // FLASK + AISSTREAM
+    </footer>
+
     <script>
-        // ================================================================
-        // CONFIGURATION
-        // ================================================================
-        const API_BASE = 'http://localhost:5001/api';
-        let map = null;
-        let chartInstance = null;
-        let pieChartInstance = null;
-        let vesselsData = [];
-        let isMapFullscreen = false;
+        // ========================================================================
+        // CONFIG & STATE
+        // ========================================================================
+        const API = 'http://localhost:5001';
+        let vessels = [],
+            packets = 0,
+            aisLive = false,
+            bootDone = false,
+            kpisData = null;
+        let chType, chSpd, chPred;
 
-        // ================================================================
-        // API CALLS
-        // ================================================================
-        async function apiCall(endpoint) {
-            try {
-                const r = await fetch(`${API_BASE}${endpoint}`);
-                if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                return await r.json();
-            } catch(e) { console.error(e); return null; }
+        // Mapping types AIS
+        const AIS_TYPES = { 0: 'Inconnu', 4: 'Passagers', 7: 'Cargo', 10: 'Tanker', 14: 'H/Vitesse', 20: 'Sans prop.', 26: 'Pilotage', 30: 'Remorqueur', 33: 'Dragueur', 36: 'Hydro.', 40: 'Garde', 45: 'Liaison', 50: 'Peche', 90: 'Soutien' };
+
+        function resolveAisType(r) {
+            if (r === undefined || r === null) return 'Inconnu';
+            const c = parseInt(r, 10);
+            if (isNaN(c)) return 'Inconnu';
+            for (const [k, v] of Object.entries(AIS_TYPES)) {
+                const kInt = parseInt(k, 10);
+                const keys = Object.keys(AIS_TYPES).map(Number);
+                const idx = keys.indexOf(kInt);
+                const nextKey = idx < keys.length - 1 ? keys[idx + 1] : Infinity;
+                if (c >= kInt && c < nextKey) return v;
+            }
+            return `T${c}`;
         }
 
-        // ================================================================
-        // CHARTS
-        // ================================================================
-        function updateTradeChart(trade) {
-            if (!trade) return;
-            if (chartInstance) { try { chartInstance.destroy(); } catch(e) {} chartInstance = null; }
-
-            const canvas = document.getElementById('tradeChart');
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const container = canvas.parentElement;
-            if (container) {
-                canvas.width = container.clientWidth || 500;
-                canvas.height = container.clientHeight || 180;
-            }
-
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Export', 'Import', 'Balance'],
-                    datasets: [
-                        {
-                            label: 'France (Mds €)',
-                            data: [
-                                trade.france?.export || 0,
-                                trade.france?.import || 0,
-                                trade.france?.balance || 0
-                            ],
-                            backgroundColor: ['#2962ff', '#ff6b00', '#ff1744'],
-                            borderColor: ['#2962ff', '#ff6b00', '#ff1744'],
-                            borderWidth: 1,
-                            borderRadius: 4,
-                            maxBarThickness: 30
-                        },
-                        {
-                            label: 'Réunion (Mds €)',
-                            data: [
-                                trade.reunion?.export || 0,
-                                trade.reunion?.import || 0,
-                                trade.reunion?.balance || 0
-                            ],
-                            backgroundColor: ['rgba(41,98,255,0.3)', 'rgba(255,107,0,0.3)', 'rgba(255,23,68,0.3)'],
-                            borderColor: ['rgba(41,98,255,0.6)', 'rgba(255,107,0,0.6)', 'rgba(255,23,68,0.6)'],
-                            borderWidth: 1,
-                            borderRadius: 4,
-                            maxBarThickness: 30
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#e8edf5', font: { size: 8 }, boxWidth: 8, padding: 4 }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            ticks: { color: '#78909c', font: { size: 8 } },
-                            grid: { color: 'rgba(255,255,255,0.03)' },
-                            beginAtZero: true
-                        },
-                        x: {
-                            ticks: { color: '#78909c', font: { size: 8 } },
-                            grid: { display: false }
-                        }
-                    },
-                    animation: { duration: 300 }
-                }
-            });
+        function resolveAisCat(r) {
+            const c = parseInt(r, 10);
+            if (isNaN(c)) return 'Autre';
+            if (c >= 4 && c <= 6) return 'Passagers';
+            if (c >= 7 && c <= 9) return 'Cargo';
+            if (c >= 10 && c <= 13) return 'Tanker';
+            if (c >= 14 && c <= 19) return 'H/Vitesse';
+            if (c >= 50 && c <= 89) return 'Peche';
+            if (c >= 90 && c <= 99) return 'Soutien';
+            return 'Autre';
         }
 
-        function updatePieChart(vessels) {
-            if (!vessels || !vessels.length) return;
-            if (pieChartInstance) { try { pieChartInstance.destroy(); } catch(e) {} pieChartInstance = null; }
+        // Logs
+        function log(m, t = 'info') {
+            const tm = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const b = document.getElementById('log-box');
+            const c = t === 'warn' ? 'w' : t === 'err' ? 'e' : '';
+            b.innerHTML += `<div class="ll"><span class="t">[${tm}]</span> <span class="${c}">${m}</span></div>`;
+            b.scrollTop = b.scrollHeight;
+            while (b.children.length > 60) b.removeChild(b.firstChild);
+        }
 
-            const canvas = document.getElementById('pieChart');
-            if (!canvas) return;
+        // Tabs
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+            setTimeout(() => {
+                if (chType) chType.resize();
+                if (chSpd) chSpd.resize();
+                if (chPred) chPred.resize();
+            }, 50);
+        }
 
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // ========================================================================
+        // CARTE LEAFLET
+        // ========================================================================
+        const map = L.map('map', { center: [-21.115, 55.536], zoom: 10, zoomControl: false, attributionControl: false });
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
+        L.polygon([
+            [-21.08, 55.50],
+            [-21.08, 55.57],
+            [-21.14, 55.57],
+            [-21.14, 55.50]
+        ], { color: '#00ffc8', weight: 1, fillColor: '#00ffc8', fillOpacity: 0.03, dashArray: '5 5' }).addTo(map);
+        [10, 20, 30].forEach(r => L.circle([-21.115, 55.536], { radius: r * 1852, color: '#00ffc8', weight: 0.5, fillColor: 'transparent', dashArray: '2 4', opacity: 0.2 }).addTo(map));
+        let vLayer = L.layerGroup().addTo(map);
 
-            const container = canvas.parentElement;
-            if (container) {
-                canvas.width = container.clientWidth || 500;
-                canvas.height = container.clientHeight || 180;
-            }
-
-            // Compter les types de navires
-            const types = {};
+        function renderMap() {
+            vLayer.clearLayers();
             vessels.forEach(v => {
-                types[v.type] = (types[v.type] || 0) + 1;
+                if (v.lat == null || v.lng == null) return;
+                const s = v.speed || 0;
+                const cls = s < 0.5 ? 'stopped' : (s < 5 ? 'slow' : '');
+                const icon = L.divIcon({
+                    className: '',
+                    html: `<div class="v-mk ${cls}" style="transform:rotate(${v.course || 0}deg)"></div>`,
+                    iconSize: [10, 10],
+                    iconAnchor: [5, 5]
+                });
+                const m = L.marker([v.lat, v.lng], { icon }).addTo(vLayer);
+
+                // Popup amélioré avec toutes les informations disponibles
+                m.bindPopup(`
+                    <div style="min-width:320px; max-width:380px; background: var(--bg-panel); color: var(--text-hi); font-family: 'JetBrains Mono', monospace; padding: 4px;">
+                        <!-- En-tête avec nom et statut -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-dim); padding-bottom:8px; margin-bottom:8px;">
+                            <div style="color:var(--c-main);font-weight:bold;font-size:14px;letter-spacing:0.5px;">${v.name || 'N/A'}</div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <div style="width:8px; height:8px; border-radius:50%; background:${s < 0.5 ? 'var(--c-red)' : s < 5 ? 'var(--c-amber)' : 'var(--c-main)'};"></div>
+                                <span style="font-size:9px; color:var(--text-lo);">${s < 0.5 ? 'A QUAI' : s < 5 ? 'LENT' : 'EN ROUTE'}</span>
+                            </div>
+                        </div>
+
+                        <!-- Grille d'informations -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:10px; line-height:1.8; color:var(--text-hi);">
+                            <!-- Colonne gauche -->
+                            <div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">MMSI</span>
+                                    <span style="font-weight:500;">${v.id || 'N/A'}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">TYPE</span>
+                                    <span style="font-weight:500; color:var(--c-blue);">${resolveAisType(v.cargo)}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">PAVILLON</span>
+                                    <span style="font-weight:500;">${v.flag || 'N/A'}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">LONGUEUR</span>
+                                    <span style="font-weight:500;">${v.length || 'N/A'} m</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">TIRANT D'EAU</span>
+                                    <span style="font-weight:500;">${v.draft || 'N/A'} m</span>
+                                </div>
+                            </div>
+
+                            <!-- Colonne droite -->
+                            <div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">VITESSE</span>
+                                    <span style="font-weight:bold; color:${s < 0.5 ? 'var(--c-red)' : s < 5 ? 'var(--c-amber)' : 'var(--c-main)'};">${s.toFixed(1)} kts</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">CAP</span>
+                                    <span style="font-weight:500;">${v.course || 0}°</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">CAP VRAI</span>
+                                    <span style="font-weight:500;">${v.heading || 0}°</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">LATITUDE</span>
+                                    <span style="font-weight:500;">${(v.lat || 0).toFixed(5)}°</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
+                                    <span style="color:var(--text-lo);">LONGITUDE</span>
+                                    <span style="font-weight:500;">${(v.lng || 0).toFixed(5)}°</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section Destination / ETA -->
+                        <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border-dim);">
+                            <div style="display:flex; justify-content:space-between; font-size:10px;">
+                                <div>
+                                    <span style="color:var(--text-lo);">DESTINATION</span><br>
+                                    <span style="color:var(--c-amber); font-weight:bold; font-size:11px;">${v.destination || 'N/D'}</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="color:var(--text-lo);">ETA</span><br>
+                                    <span style="color:var(--c-amber); font-weight:bold; font-size:11px;">${v.eta || 'N/D'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timestamp -->
+                        <div style="margin-top:6px; text-align:right; font-size:8px; color:var(--text-lo); border-top:1px solid rgba(21,48,48,0.3); padding-top:4px;">
+                            DERNIERE MISE A JOUR: ${v.timestamp ? new Date(v.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}
+                        </div>
+                    </div>
+                `, { maxWidth: 400, className: 'custom-popup' });
             });
+            document.getElementById('radar-ct').textContent = `${vessels.length} TARGETS`;
+        }
 
-            const labels = Object.keys(types);
-            const data = Object.values(types);
-            const colors = ['#2962ff', '#ff6b00', '#00c853', '#ffd600', '#ff1744', '#9c27b0'];
+        // ========================================================================
+        // GRAPHIQUES CHART.JS
+        // ========================================================================
+        Chart.defaults.color = '#4a6a70';
+        Chart.defaults.borderColor = '#152030';
+        Chart.defaults.font.family = "'JetBrains Mono',monospace";
 
-            pieChartInstance = new Chart(ctx, {
+        function initCharts() {
+            chType = new Chart(document.getElementById('ch-type'), {
                 type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors.slice(0, labels.length),
-                        borderColor: '#131b2e',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                color: '#e8edf5',
-                                font: { size: 8 },
-                                boxWidth: 8,
-                                padding: 4
-                            }
-                        }
-                    },
-                    cutout: '60%'
-                }
+                data: { labels: [], datasets: [{ data: [], backgroundColor: '#00ffc822', borderColor: '#00ffc8', borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 8, font: { size: 9 } } } } }
+            });
+            chSpd = new Chart(document.getElementById('ch-spd'), {
+                type: 'bar',
+                data: { labels: ['0', '0-3', '3-6', '6-9', '9-12', '12-15', '15+'], datasets: [{ data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#00ffc822', borderColor: '#00ffc8', borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { grid: { color: '#152030' }, beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+            chPred = new Chart(document.getElementById('ch-pred'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Prediction Trafic', data: [], borderColor: '#00ffc8', backgroundColor: 'rgba(0,255,200,0.1)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#00ffc8' }, { label: 'Confiance (%)', data: [], borderColor: '#ffb800', borderDash: [5, 5], tension: 0.4, pointRadius: 0, yAxisID: 'y1' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { grid: { color: '#152030' }, beginAtZero: true, title: { display: true, text: 'Navires', font: { size: 10 } } }, y1: { position: 'right', grid: { drawOnChartArea: false }, min: 0, max: 100, title: { display: true, text: 'Confiance %', font: { size: 10 } } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
             });
         }
+        initCharts();
 
-        // ================================================================
-        // LOAD DATA
-        // ================================================================
-        async function loadData() {
-            const data = await apiCall('/dashboard');
-            if (data) {
-                vesselsData = data.vessels || [];
-                updateVessels(vesselsData);
-                updateMetrics(data);
-                updatePorts(data.ports || []);
-                updateWeather(data.weather);
-                updateAlerts(data.alerts || []);
-                updateMap(vesselsData);
-                updateStats(data.stats || {});
-                updatePieChart(vesselsData);
-                updateHeader(data.timestamp);
-                if (data.trade) {
-                    setTimeout(() => updateTradeChart(data.trade), 50);
-                }
-                updateProducts(data.trade);
-                document.getElementById('vessel-count-header').textContent = vesselsData.length;
-            }
+        function updateAnalytics() {
+            const cats = {};
+            const bins = [0, 0, 0, 0, 0, 0, 0];
+            vessels.forEach(v => {
+                const c = resolveAisCat(v.cargo);
+                cats[c] = (cats[c] || 0) + 1;
+                const s = v.speed || 0;
+                if (s < 0.1) bins[0]++;
+                else if (s < 3) bins[1]++;
+                else if (s < 6) bins[2]++;
+                else if (s < 9) bins[3]++;
+                else if (s < 12) bins[4]++;
+                else if (s < 15) bins[5]++;
+                else bins[6]++;
+            });
+            const pal = ['#00ffc8', '#ffb800', '#00aaff', '#ff003c', '#a855f7', '#ec4899', '#84cc16'];
+            chType.data.labels = Object.keys(cats);
+            chType.data.datasets[0].data = Object.values(cats);
+            chType.data.datasets[0].backgroundColor = Object.keys(cats).map((_, i) => pal[i % pal.length] + '33');
+            chType.data.datasets[0].borderColor = Object.keys(cats).map((_, i) => pal[i % pal.length]);
+            chType.update('none');
+            chSpd.data.datasets[0].data = bins;
+            chSpd.update('none');
         }
 
-        // ================================================================
-        // UPDATE FUNCTIONS
-        // ================================================================
-        function updateVessels(vessels) {
-            const container = document.getElementById('vessels-container');
-            document.getElementById('vessel-count-display').textContent = vessels.length;
+        // ========================================================================
+        // RENDU DES 8 KPIs
+        // ========================================================================
+        function renderKPIs(d) {
+            if (!d) return;
+            const set = (id, val, color) => {
+                const el = document.getElementById(id);
+                el.textContent = val;
+                el.classList.remove('nd');
+                if (color) el.style.color = color;
+            };
 
+            set('k-cont', d.conteneurs.toLocaleString('fr-FR'), 'var(--c-main)');
+            set('k-ocp', d.occupation + '%', d.occupation > 85 ? 'var(--c-red)' : d.occupation > 60 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-sat', d.satisfaction + '%', d.satisfaction < 75 ? 'var(--c-red)' : d.satisfaction < 85 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-ret', d.retards + 'h', d.retards > 3 ? 'var(--c-red)' : d.retards > 2 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-eff', d.efficacite + '%', d.efficacite < 75 ? 'var(--c-red)' : d.efficacite < 85 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-rot', d.rotation + 'j', 'var(--c-blue)');
+            set('k-cost', d.cout_teu + '€', 'var(--c-amber)');
+            set('k-co2', d.co2 + 't', d.co2 > 15 ? 'var(--c-red)' : d.co2 > 8 ? 'var(--c-amber)' : 'var(--c-main)');
+
+            if (d.metadata) log(`KPIs: ${d.metadata.navires_quai} quais / ${d.metadata.navires_mouvement} en mvmt`);
+        }
+
+        // ========================================================================
+        // TABLEAU OPERATIONNEL
+        // ========================================================================
+        function updateTable() {
+            const tbody = document.getElementById('vt-body');
+            document.getElementById('vt-count').textContent = vessels.length;
             if (!vessels.length) {
-                container.innerHTML = '<div style="color:#78909c;text-align:center;padding:20px;">Aucun navire détecté</div>';
+                tbody.innerHTML = '<tr><td colspan="12" class="text-center text-[var(--text-lo)] py-8">AUCUN NAVIRE DETECTE</td></tr>';
                 return;
             }
-
-            let html = '';
-            vessels.forEach(v => {
-                const statusClass = {
-                    'À quai': 'status-quai',
-                    'En route': 'status-route',
-                    'En opération': 'status-operation',
-                    'En attente': 'status-attente'
-                }[v.status] || '';
-
-                html += `
-                    <div class="vessel-item" data-status="${v.status}" data-type="${v.type}" data-name="${v.name.toLowerCase()}">
-                        <div>
-                            <div class="name">${v.name}</div>
-                            <div class="detail">${v.flag || ''} • ${v.type || ''} • ${v.compagnie || ''}</div>
-                        </div>
-                        <div class="detail">${v.cargo || '--'}</div>
-                        <div><span class="status-badge ${statusClass}">${v.status || '--'}</span></div>
-                        <div style="text-align:right;">
-                            <span class="teu">${v.teu || 0} TEU</span>
-                            <div class="detail">⚡ ${v.speed || 0} nd</div>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
+            tbody.innerHTML = [...vessels].sort((a, b) => (b.speed || 0) - (a.speed || 0)).map(v => {
+                const s = v.speed || 0;
+                const sc = s < 0.5 ? 'var(--c-red)' : (s < 5 ? 'var(--c-amber)' : 'var(--text-hi)');
+                const tm = v.timestamp ? new Date(v.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
+                return `<tr>
+                    <td class="py-2 px-2 text-[var(--text-lo)]">${v.id}</td>
+                    <td class="py-2 px-2 font-bold text-[var(--text-hi)]" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.name || '?'}</td>
+                    <td class="py-2 px-2 text-[var(--text-lo)]">${resolveAisType(v.cargo)}</td>
+                    <td class="py-2 px-2 text-[var(--c-amber)]" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.destination || 'N/D'}</td>
+                    <td class="py-2 px-2 text-right">${v.length || 'N/D'}</td>
+                    <td class="py-2 px-2 text-right">${v.draft || 'N/D'}</td>
+                    <td class="py-2 px-2 text-right">${v.lat || 0}</td>
+                    <td class="py-2 px-2 text-right">${v.lng || 0}</td>
+                    <td class="py-2 px-2 text-right font-bold" style="color:${sc}">${s.toFixed(1)}</td>
+                    <td class="py-2 px-2 text-right">${v.course || 0}° / ${v.heading || 0}°</td>
+                    <td class="py-2 px-2 text-[var(--text-lo)]">${v.eta || 'N/D'}</td>
+                    <td class="py-2 px-2 text-[var(--text-lo)]">${tm}</td>
+                </tr>`;
+            }).join('');
         }
 
-        function updateMetrics(data) {
-            const vessels = data.vessels || [];
-            const stats = data.stats || {};
+        // ========================================================================
+        // ALERTES DYNAMIQUES
+        // ========================================================================
+        function updateAlerts(weather, stats) {
+            const ac = document.getElementById('alerts-container');
+            let h = `<div class="alert-bar ${aisLive ? 'alert-ok' : 'alert-warn'}"><i class="fa-solid fa-server"></i> <span>SYSTEME: ${aisLive ? 'AIS STREAM CONNECTE' : 'AIS STREAM HORS LIGNE'}</span></div>`;
+            h += `<div class="alert-bar ${stats.total > 10 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-ship"></i> <span>TRAFFIC: ${stats.total} NAVIRES ${stats.total > 10 ? '(ELEVE)' : ''}</span></div>`;
 
-            document.getElementById('vessels-count').textContent = vessels.length;
-            document.getElementById('vessels-change').textContent = `+${vessels.length} actifs`;
-            document.getElementById('vessels-change').className = 'change change-up';
-
-            document.getElementById('total-teu').textContent = (stats.total_teu || 0).toLocaleString();
-            document.getElementById('avg-teu').textContent = `Moy: ${(stats.avg_teu || 0).toLocaleString()}`;
-
-            document.getElementById('total-value').textContent = `${((stats.total_valeur || 0) / 1e6).toFixed(1)}M €`;
-            document.getElementById('value-change').textContent = 'Valeur totale';
-
-            document.getElementById('companies-count').textContent = stats.compagnies_actives || 0;
-            document.getElementById('companies-change').textContent = 'Actives';
-
-            document.getElementById('types-count').textContent = stats.types_navires || 0;
-            document.getElementById('types-change').textContent = 'Catégories';
-
-            document.getElementById('route-count').textContent = stats.navires_par_statut?.['En route'] || 0;
-            document.getElementById('route-change').textContent = 'En navigation';
-        }
-
-        function updateStats(stats) {
-            document.getElementById('total-weight').textContent = `${((stats.total_poids || 0)).toFixed(0)}t`;
-            document.getElementById('cargo-count').textContent = stats.cargo_categories || 0;
-            const shipsPerCompany = stats.compagnies_actives > 0 ?
-                Math.round((stats.total_teu || 0) / stats.compagnies_actives) : 0;
-            document.getElementById('ships-per-company').textContent = shipsPerCompany.toLocaleString();
-            document.getElementById('avg-teu-stat').textContent = (stats.avg_teu || 0).toLocaleString();
-        }
-
-        function updatePorts(ports) {
-            const container = document.getElementById('ports-container');
-            if (!ports.length) { container.innerHTML = '<div style="color:#78909c;text-align:center;padding:10px;">Aucun port</div>'; return; }
-
-            let html = '';
-            ports.forEach(p => {
-                html += `
-                    <div style="background:#0d1628;padding:8px 12px;border-radius:4px;margin-bottom:6px;border-left:3px solid #2962ff;">
-                        <div style="font-weight:600;font-size:0.8rem;">⚓ ${p.name}</div>
-                        <div style="font-size:0.65rem;color:#78909c;">${p.city}, ${p.country}</div>
-                        <div style="display:flex;gap:12px;margin-top:3px;font-size:0.6rem;color:#78909c;">
-                            <span>📦 ${p.conteneurs}</span>
-                            <span>🚢 ${p.trafic}</span>
-                            <span>⚓ ${p.quais} quais</span>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function updateWeather(weather) {
-            const container = document.getElementById('weather-container');
-            if (!weather || weather.error) {
-                container.innerHTML = '<div style="color:#78909c;">Météo indisponible</div>';
-                return;
-            }
-
-            const current = weather.current || {};
-            container.innerHTML = `
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
-                    <div><span style="color:#78909c;">🌡️</span> ${current.temperature_2m || '--'}°C</div>
-                    <div><span style="color:#78909c;">💨</span> ${current.wind_speed_10m || '--'} km/h</div>
-                    <div><span style="color:#78909c;">💧</span> ${current.precipitation || '--'} mm</div>
-                </div>
-            `;
-        }
-
-        function updateAlerts(alerts) {
-            const container = document.getElementById('alerts-container');
-            if (!alerts.length) { container.innerHTML = ''; return; }
-
-            container.innerHTML = alerts.map(a => `
-                <div class="alert-item alert-${a.level}">
-                    <span class="icon">${a.icon || 'ℹ️'}</span>
-                    <div>
-                        <div class="title">${a.title || a.message}</div>
-                        <div style="font-size:0.65rem;color:#78909c;">${a.message}</div>
-                    </div>
-                    <span class="time">${new Date(a.time).toLocaleTimeString()}</span>
-                </div>
-            `).join('');
-        }
-
-        function updateMap(vessels) {
-            if (typeof L === 'undefined') return;
-            if (!map) {
-                map = L.map('map').setView([-20.9386, 55.2834], 8);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap'
-                }).addTo(map);
-            }
-            map.eachLayer(layer => {
-                if (layer instanceof L.Marker || layer instanceof L.CircleMarker) map.removeLayer(layer);
-            });
-
-            vessels.forEach(v => {
-                if (!v.lat || !v.lon) return;
-                const color = {
-                    'À quai': '#00c853',
-                    'En route': '#2962ff',
-                    'En opération': '#ffd600',
-                    'En attente': '#ff1744'
-                }[v.status] || '#2962ff';
-
-                const marker = L.circleMarker([v.lat, v.lon], {
-                    radius: 4 + Math.min(v.teu || 0, 10000) / 2000,
-                    fillColor: color,
-                    color: color,
-                    weight: 1,
-                    opacity: 0.8,
-                    fillOpacity: 0.6
-                }).addTo(map);
-
-                marker.bindPopup(`
-                    <div style="font-family:sans-serif;font-size:11px;">
-                        <b>${v.name}</b><br>
-                        Statut: ${v.status}<br>
-                        Vitesse: ${v.speed} nœuds<br>
-                        TEU: ${v.teu || 0}<br>
-                        Cargo: ${v.cargo || '--'}<br>
-                        Destination: ${v.destination || 'N/A'}
-                    </div>
-                `);
-            });
-        }
-
-        function updateProducts(trade) {
-            const container = document.getElementById('top-products');
-            if (!trade || !trade.top_export) {
-                container.innerHTML = '<div style="color:#78909c;text-align:center;padding:10px;">Indisponible</div>';
-                return;
-            }
-
-            let html = '';
-            trade.top_export.slice(0, 5).forEach(p => {
-                const color = p.croissance > 0 ? '#00c853' : '#ff1744';
-                html += `
-                    <div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #1e2d4d;">
-                        <span style="font-size:0.75rem;">${p.produit}</span>
-                        <span style="font-size:0.7rem;color:#ffd600;">${p.valeur} Mds €</span>
-                        <span style="font-size:0.55rem;color:${color};">${p.croissance > 0 ? '+' : ''}${p.croissance}%</span>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function updateHeader(timestamp) {
-            if (timestamp) {
-                document.getElementById('header-time').textContent = new Date(timestamp).toLocaleTimeString();
-            }
-        }
-
-        // ================================================================
-        // FILTERS
-        // ================================================================
-        function applyFilters() {
-            const status = document.getElementById('filter-status').value;
-            const type = document.getElementById('filter-type').value;
-            const search = document.getElementById('filter-search').value.toLowerCase();
-
-            const items = document.querySelectorAll('.vessel-item');
-            let visible = 0;
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                const matchStatus = status === 'all' || item.dataset.status === status;
-                const matchType = type === 'all' || item.dataset.type === type;
-                const matchSearch = text.includes(search);
-                const show = matchStatus && matchType && matchSearch;
-                item.style.display = show ? 'grid' : 'none';
-                if (show) visible++;
-            });
-            document.getElementById('vessel-count-display').textContent = visible;
-        }
-
-        function clearFilters() {
-            document.getElementById('filter-status').value = 'all';
-            document.getElementById('filter-type').value = 'all';
-            document.getElementById('filter-search').value = '';
-            applyFilters();
-        }
-
-        // ================================================================
-        // MAP FULLSCREEN
-        // ================================================================
-        function toggleFullscreenMap() {
-            const mapContainer = document.getElementById('map');
-            if (!isMapFullscreen) {
-                if (mapContainer.requestFullscreen) {
-                    mapContainer.requestFullscreen();
-                } else if (mapContainer.webkitRequestFullscreen) {
-                    mapContainer.webkitRequestFullscreen();
-                }
-                isMapFullscreen = true;
-                setTimeout(() => map.invalidateSize(), 500);
+            const ocp = kpisData ? kpisData.occupation : 0;
+            if (ocp > 85) {
+                h += `<div class="alert-bar alert-err"><i class="fa-solid fa-warehouse"></i> <span>QUAIS: SATURATION ${ocp}%</span></div>`;
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
+                const w = weather?.hourly?.wave_height;
+                if (w && w.length) {
+                    const v = w[w.length - 1];
+                    h += `<div class="alert-bar ${v > 2.5 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-cloud-sun"></i> <span>METEO: HOULE ${v.toFixed(1)}M ${v > 2.5 ? '(DEFAVORABLE)' : '(FAVORABLE)'}</span></div>`;
+                } else h += `<div class="alert-bar alert-warn"><i class="fa-solid fa-cloud-sun"></i> <span>METEO: INDISPONIBLE</span></div>`;
+            }
+            ac.innerHTML = h;
+        }
+
+        // ========================================================================
+        // REQUETES API
+        // ========================================================================
+        async function apiGet(e) {
+            const r = await fetch(`${API}${e}`, { signal: AbortSignal.timeout(4000) });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        }
+
+        let failCount = 0,
+            firstSync = false;
+
+        async function syncVessels() {
+            try {
+                const d = await apiGet('/api/vessels');
+                vessels = d || [];
+                failCount = 0;
+                if (!firstSync) {
+                    firstSync = true;
+                    log(`SYNC INIT: ${vessels.length} NAVIRES`);
+                    const b = document.getElementById('boot-screen');
+                    b.classList.add('hide');
+                    setTimeout(() => b.style.display = 'none', 600);
+                    bootDone = true;
                 }
-                isMapFullscreen = false;
-                setTimeout(() => map.invalidateSize(), 500);
+                renderMap();
+                updateTable();
+                updateAnalytics();
+            } catch (e) {
+                failCount++;
+                log(`ERR VESSELS: ${e.message}`, 'err');
+                if (failCount >= 3 && !bootDone) {
+                    document.getElementById('err-detail').textContent = e.message;
+                    document.getElementById('error-screen').classList.add('active');
+                    document.getElementById('boot-screen').style.display = 'none';
+                }
+                if (bootDone && failCount >= 3) setStatus(false);
             }
         }
 
-        document.addEventListener('fullscreenchange', () => {
-            isMapFullscreen = !!document.fullscreenElement;
-            setTimeout(() => map.invalidateSize(), 500);
-        });
-
-        // ================================================================
-        // REFRESH
-        // ================================================================
-        function refreshChart() {
-            if (chartInstance) { try { chartInstance.destroy(); } catch(e) {} chartInstance = null; }
-            if (pieChartInstance) { try { pieChartInstance.destroy(); } catch(e) {} pieChartInstance = null; }
-            apiCall('/trade').then(trade => { if (trade) setTimeout(() => updateTradeChart(trade), 50); });
-            if (vesselsData.length) updatePieChart(vesselsData);
+        async function syncStats() {
+            try {
+                const d = await apiGet('/api/stats');
+                packets = d.messages || 0;
+                document.getElementById('msg-count').textContent = packets;
+                setStatus(d.connected);
+                updateAlerts(await apiGet('/api/weather').catch(() => null), d);
+            } catch (e) {}
         }
 
-        async function refreshData() { await loadData(); }
-
-        async function refreshVessels() {
-            const vessels = await apiCall('/vessels');
-            if (vessels) { vesselsData = vessels; updateVessels(vessels); updatePieChart(vessels); }
+        async function syncWeather() {
+            try {
+                const d = await apiGet('/api/weather');
+                updateWeather(d);
+                log('METEO UPDATE');
+            } catch (e) {
+                log(`ERR METEO: ${e.message}`, 'warn');
+            }
         }
 
-        function exportCSV() { window.open(`${API_BASE}/export/csv`); }
-        function exportExcel() { window.open(`${API_BASE}/export/excel`); }
-        function exportPDF() { window.open(`${API_BASE}/export/pdf`); }
+        async function syncPredictions() {
+            try {
+                const d = await apiGet('/api/predictions');
+                if (d.error) throw new Error(d.error);
+                const p = d.predictions || [];
+                chPred.data.labels = p.map(x => `J+${x.day}`);
+                chPred.data.datasets[0].data = p.map(x => x.prediction);
+                chPred.data.datasets[1].data = p.map(x => (x.confidence * 100).toFixed(1));
+                chPred.update('none');
 
-        // ================================================================
-        // RESIZE
-        // ================================================================
-        let resizeTimer;
-        function handleResize() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                if (chartInstance) {
-                    try {
-                        const canvas = document.getElementById('tradeChart');
-                        const container = canvas.parentElement;
-                        if (container) {
-                            canvas.width = container.clientWidth || 500;
-                            canvas.height = container.clientHeight || 180;
-                            chartInstance.resize();
-                        }
-                    } catch(e) {}
+                document.getElementById('ia-trend').textContent = `${d.trend > 0 ? '+' : ''}${d.trend.toFixed(1)}%`;
+                document.getElementById('ia-trend').style.color = d.trend > 0 ? 'var(--c-main)' : 'var(--c-red)';
+                document.getElementById('ia-peak').textContent = d.peak ? d.peak.toFixed(1) : 'N/D';
+                document.getElementById('ia-conf').textContent = d.avg_confidence ? `${(d.avg_confidence * 100).toFixed(0)}%` : 'N/D';
+                document.getElementById('ia-conf-bar').style.width = d.avg_confidence ? `${d.avg_confidence * 100}%` : '0%';
+
+                let act = '<div class="space-y-2">';
+                if (d.trend > 5) act += '<div class="text-[var(--c-amber)]"><i class="fa-solid fa-triangle-exclamation mr-2"></i>HAUSSE PREVUE. RENFORCER EQUIPAGES.</div>';
+                else if (d.trend < -5) act += '<div class="text-[var(--c-blue)]"><i class="fa-solid fa-arrow-down mr-2"></i>BAISSE PREVUE. OPTIMISER RESSOURCES.</div>';
+                else act += '<div class="text-[var(--c-main)]"><i class="fa-solid fa-check mr-2"></i>TRAFFIC STABLE. OPERATIONS NORMALES.</div>';
+                if (d.avg_confidence < 0.7) act += '<div class="text-[var(--c-red)]"><i class="fa-solid fa-exclamation-circle mr-2"></i>FAIBLE CONFIANCE MODELE.</div>';
+                act += '</div>';
+                document.getElementById('ia-actions').innerHTML = act;
+                log('PREDICTIONS UPDATE');
+            } catch (e) {
+                log(`ERR PRED: ${e.message}`, 'warn');
+            }
+        }
+
+        async function syncKPIs() {
+            try {
+                const d = await apiGet('/api/kpis');
+                kpisData = d;
+                renderKPIs(d);
+            } catch (e) {
+                log(`ERR KPIs: ${e.message}`, 'warn');
+            }
+        }
+
+        function updateWeather(d) {
+            if (!d || !d.hourly) return;
+            const h = d.hourly;
+            const i = Math.max(0, (h.wave_height || []).length - 1);
+            const w = h.wave_height ? h.wave_height[i] : null,
+                pe = h.wave_period ? h.wave_period[i] : null,
+                di = h.wave_direction ? h.wave_direction[i] : null,
+                sw = h.swell_wave_height ? h.swell_wave_height[i] : null;
+            if (w == null) return;
+            document.getElementById('weather-panel').innerHTML = `
+                <div class="flex justify-between"><span class="text-[var(--text-lo)]">HOULE</span><span class="text-[var(--text-hi)]">${w.toFixed(1)} m</span></div><div class="w-full h-1 bg-[var(--border-dim)]"><div class="h-full bg-[var(--c-blue)]" style="width:${Math.min(100, (w / 4) * 100)}%"></div></div>
+                <div class="flex justify-between"><span class="text-[var(--text-lo)]">PERIODE</span><span class="text-[var(--text-hi)]">${pe.toFixed(1)} s</span></div><div class="w-full h-1 bg-[var(--border-dim)]"><div class="h-full bg-[var(--c-main)]" style="width:${Math.min(100, (pe / 15) * 100)}%"></div></div>
+                <div class="flex justify-between"><span class="text-[var(--text-lo)]">DIRECTION</span><span class="text-[var(--text-hi)]">${Math.round(di)}°</span></div>
+                <div class="flex justify-between"><span class="text-[var(--text-lo)]">SWELL</span><span class="text-[var(--text-hi)]">${sw.toFixed(1)} m</span></div><div class="w-full h-1 bg-[var(--border-dim)]"><div class="h-full bg-[var(--c-amber)]" style="width:${Math.min(100, (sw / 3) * 100)}%"></div></div>`;
+        }
+
+        function setStatus(l) {
+            aisLive = l;
+            const d = document.getElementById('status-dot'),
+                t = document.getElementById('status-text'),
+                w = document.getElementById('cfg-ws');
+            if (l) {
+                d.className = 'w-2 h-2 rounded-full bg-[var(--c-main)] blink';
+                t.textContent = 'AIS LIVE';
+                t.style.color = 'var(--c-main)';
+                w.textContent = 'CONNECTE';
+                w.style.color = 'var(--c-main)';
+            } else {
+                d.className = 'w-2 h-2 rounded-full bg-[var(--c-amber)] blink';
+                t.textContent = 'AIS OFFLINE';
+                t.style.color = 'var(--c-amber)';
+                w.textContent = 'DECONNECTE';
+                w.style.color = 'var(--c-red)';
+            }
+        }
+
+        // ========================================================================
+        // SEQUENCE DE DEMARRAGE & BOUCLES
+        // ========================================================================
+        async function boot() {
+            const s = document.getElementById('boot-status');
+            s.textContent = 'CONNEXION SERVEUR FLASK...';
+            await new Promise(r => setTimeout(r, 800));
+
+            s.textContent = 'TEST ENDPOINTS...';
+            try {
+                await apiGet('/api/status');
+                log('SERVEUR FLASK DETECTE');
+            } catch (e) {
+                log('FLASK NON DETECTE', 'err');
+            }
+
+            await new Promise(r => setTimeout(r, 600));
+            s.textContent = 'SYNC AIS + KPIs...';
+
+            // Lancement initial parallèle
+            await syncVessels();
+            await syncStats();
+            await syncKPIs();
+            syncWeather();
+            syncPredictions();
+
+            // Boucles de rafraîchissement
+            setInterval(() => document.getElementById('clock').textContent = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Indian/Reunion' }), 1000);
+            setInterval(syncVessels, 3000); // Navires : 3s
+            setInterval(syncStats, 2000); // Stats/Paquets : 2s
+            setInterval(syncKPIs, 5000); // KPIs Calculés : 5s
+            setInterval(syncWeather, 60000); // Météo : 60s
+            setInterval(syncPredictions, 30000); // IA : 30s
+
+            // Log périodique
+            setInterval(() => {
+                if (vessels.length && aisLive) {
+                    const v = vessels[Math.floor(Math.random() * vessels.length)];
+                    log(`RX ${v.id} // ${v.name || '?'} SPD:${(v.speed || 0).toFixed(1)}`);
                 }
-                if (pieChartInstance) {
-                    try {
-                        const canvas = document.getElementById('pieChart');
-                        const container = canvas.parentElement;
-                        if (container) {
-                            canvas.width = container.clientWidth || 500;
-                            canvas.height = container.clientHeight || 180;
-                            pieChartInstance.resize();
-                        }
-                    } catch(e) {}
-                }
-                if (map) map.invalidateSize();
-            }, 300);
+            }, 4000);
         }
 
-        // ================================================================
-        // INIT
-        // ================================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            setInterval(loadData, 30000);
-
-            document.getElementById('filter-search').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') applyFilters();
-            });
-
-            window.addEventListener('resize', handleResize);
-
-            console.log('🚢 IMPORT-EXPORT MONITOR PRO v3.0');
-            console.log('📊 Dashboard chargé avec succès');
+        window.addEventListener('load', () => {
+            setTimeout(() => map.invalidateSize(), 100);
+            boot();
         });
+        window.addEventListener('resize', () => map.invalidateSize());
     </script>
 </body>
 </html>
