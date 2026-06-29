@@ -1,6 +1,9 @@
 Flask
-flask-cors
+Flask-CORS
+Flask-SocketIO
 requests
-pandas
+websocket-client
+python-dotenv
 numpy
-reportlab
+eventlet
+simple-websocket
