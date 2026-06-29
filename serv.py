@@ -4,7 +4,7 @@
 """
 S-Wing Réunion PRO - Serveur Flask
 Port: 5001
-AISStream + API REST + KPIs Enrichis par données Temps Réel (APIs gratuites)
+AISStream + API REST + KPIs Enrichis + Périmètre Quais Physique
 """
 
 from flask import Flask, render_template, jsonify, send_from_directory
@@ -18,6 +18,7 @@ import traceback
 import websocket
 import requests
 import time
+import math
 from collections import deque
 import random
 
@@ -49,8 +50,37 @@ simulation_step = 0
 use_test_data = True
 quai_events = deque(maxlen=100)
 
-# Cache pour les API externes (éviter de les spammer)
+# Cache pour les API externes
 external_data_cache = {'data': {}, 'last_fetch': 0}
+
+# ============================================================
+# PÉRIMÈTRE PHYSIQUE DES QUAIS (Géofencing)
+# ============================================================
+
+QUAI_POLYGON = [
+    [-21.106, 55.530], [-21.107, 55.545],
+    [-21.118, 55.547], [-21.119, 55.535],
+    [-21.114, 55.528], [-21.106, 55.530]
+]
+
+MOUILLAGE_POLYGON = [
+    [-21.095, 55.520], [-21.095, 55.550],
+    [-21.105, 55.550], [-21.105, 55.520],
+    [-21.095, 55.520]
+]
+
+def point_in_polygon(lat, lng, polygon):
+    """Algorithme de ray-casting"""
+    n = len(polygon)
+    inside = False
+    j = n - 1
+    for i in range(n):
+        xi, yi = polygon[i]
+        xj, yj = polygon[j]
+        if ((yi > lng) != (yj > lng)) and (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi):
+            inside = not inside
+        j = i
+    return inside
 
 # ============================================================
 # DONNÉES DE TEST STABLES
@@ -60,7 +90,8 @@ BASE_VESSELS = [
     {'id': '228339000', 'name': 'MSC Isabella', 'type': 'import', 'cargo': 'Cargo', 'flag': 'FR', 'lat': -21.08, 'lng': 55.52, 'speed': 8.5, 'course': 315, 'length': 366, 'draft': 12.5, 'destination': 'Port de La Reunion'},
     {'id': '228339001', 'name': 'CMA CGM La Reunion', 'type': 'export', 'cargo': 'Cargo', 'flag': 'PA', 'lat': -21.15, 'lng': 55.56, 'speed': 12.3, 'course': 45, 'length': 399, 'draft': 14.2, 'destination': 'Marseille'},
     {'id': '228339002', 'name': 'MAERSK Cardiff', 'type': 'transit', 'cargo': 'Cargo', 'flag': 'SG', 'lat': -21.10, 'lng': 55.48, 'speed': 6.2, 'course': 180, 'length': 350, 'draft': 11.8, 'destination': 'Singapour'},
-    {'id': '228339003', 'name': 'EVER Glory', 'type': 'import', 'cargo': 'Cargo', 'flag': 'CN', 'lat': -21.18, 'lng': 55.60, 'speed': 0.2, 'course': 90, 'length': 400, 'draft': 15.0, 'destination': 'Port de La Reunion'},
+    # CE NAVIRE EST DANS LE POLYGONE DES QUAIS
+    {'id': '228339003', 'name': 'EVER Glory', 'type': 'import', 'cargo': 'Cargo', 'flag': 'CN', 'lat': -21.112, 'lng': 55.538, 'speed': 0.2, 'course': 90, 'length': 400, 'draft': 15.0, 'destination': 'Port de La Reunion'},
     {'id': '228339004', 'name': 'HMM Rotterdam', 'type': 'export', 'cargo': 'Tanker', 'flag': 'UK', 'lat': -21.05, 'lng': 55.50, 'speed': 14.7, 'course': 270, 'length': 330, 'draft': 13.5, 'destination': 'Rotterdam'},
 ]
 
@@ -80,73 +111,47 @@ def get_test_vessels():
     return out
 
 # ============================================================
-# APPELS API EXTERNES GRATUITES (Sans clé)
+# APPELS API EXTERNES GRATUITES
 # ============================================================
 
 def get_live_context():
-    """
-    Récupère les conditions physiques et économiques en temps réel
-    pour influencer dynamiquement les KPIs du port.
-    """
     global external_data_cache
-
-    # Ne pas appeler les API plus d'une fois toutes les 10 minutes
     if time.time() - external_data_cache['last_fetch'] < 600 and external_data_cache['data']:
         return external_data_cache['data']
 
-    context = {
-        'wind_speed_kts': 0, 'wave_height_m': 0, 'swell_m': 0,
-        'is_night': False, 'eur_usd': 1.08 # Fallback réaliste
-    }
+    context = {'wind_speed_kts': 0, 'wave_height_m': 0, 'swell_m': 0, 'is_night': False, 'eur_usd': 1.08}
 
-    # 1. MÉTÉO AVANCÉE (Open-Meteo) - Vent + Houle
     try:
-        r = requests.get("https://api.open-meteo.com/v1/marine", params={
-            'latitude': -21.115, 'longitude': 55.536,
-            'current': 'wind_speed_10m,wave_height,swell_wave_height',
-            'timezone': 'Indian/Reunion'
-        }, timeout=5)
+        r = requests.get("https://api.open-meteo.com/v1/marine", params={'latitude': -21.115, 'longitude': 55.536, 'current': 'wind_speed_10m,wave_height,swell_wave_height', 'timezone': 'Indian/Reunion'}, timeout=5)
         if r.status_code == 200:
             c = r.json().get('current', {})
-            # Conversion m/s en noeuds (x 1.943)
             context['wind_speed_kts'] = (c.get('wind_speed_10m', 0) or 0) * 1.943
             context['wave_height_m'] = c.get('wave_height', 0) or 0
             context['swell_m'] = c.get('swell_wave_height', 0) or 0
-    except Exception as e:
-        print(f"Erreur API Meteo avancée: {e}")
+    except Exception as e: print(f"Erreur Meteo: {e}")
 
-    # 2. JOUR / NUIT (Sunrise-Sunset API)
     try:
-        r = requests.get("https://api.sunrise-sunset.org/json", params={
-            'lat': -21.115, 'lng': 55.536, 'formatted': 0
-        }, timeout=5)
+        r = requests.get("https://api.sunrise-sunset.org/json", params={'lat': -21.115, 'lng': 55.536, 'formatted': 0}, timeout=5)
         if r.status_code == 200:
             results = r.json().get('results', {})
             now = datetime.utcnow()
             sunrise = datetime.fromisoformat(results.get('sunrise', '').replace('Z', '+00:00')).replace(tzinfo=None)
             sunset = datetime.fromisoformat(results.get('sunset', '').replace('Z', '+00:00')).replace(tzinfo=None)
-            # Conversion approximative heure Réunion (UTC+4)
             reunion_now = now.hour + 4
-            sunrise_h = sunrise.hour + 4
-            sunset_h = sunset.hour + 4
-            context['is_night'] = not (sunrise_h <= reunion_now <= sunset_h)
-    except Exception as e:
-        print(f"Erreur API Jour/Nuit: {e}")
+            context['is_night'] = not (sunrise.hour + 4 <= reunion_now <= sunset.hour + 4)
+    except: pass
 
-    # 3. TAUX DE CHANGE EUR/USD (Frankfurter API - 100% gratuit)
     try:
         r = requests.get("https://api.frankfurter.app/latest?from=EUR&to=USD", timeout=5)
-        if r.status_code == 200:
-            context['eur_usd'] = r.json().get('rates', {}).get('USD', 1.08)
-    except Exception as e:
-        print(f"Erreur API Change: {e}")
+        if r.status_code == 200: context['eur_usd'] = r.json().get('rates', {}).get('USD', 1.08)
+    except: pass
 
     external_data_cache['data'] = context
     external_data_cache['last_fetch'] = time.time()
     return context
 
 # ============================================================
-# MODULE KPIs ENRICHI PAR LES DONNÉES TEMPS RÉEL
+# MODULE KPIs
 # ============================================================
 
 def compute_kpis(vessels_list, context):
@@ -154,45 +159,48 @@ def compute_kpis(vessels_list, context):
     if total == 0:
         return {'conteneurs': 0, 'occupation': 0.0, 'satisfaction': 0.0, 'retards': 0.0, 'efficacite': 0.0, 'rotation': 0.0, 'cout_teu': 0.0, 'co2': 0.0, 'metadata': {'navires_total': 0, 'navires_quai': 0, 'navires_mouvement': 0, 'navires_cargo': 0, 'sources': 'N/A'}}
 
-    at_quay = [v for v in vessels_list if (v.get('speed') or 0) < 0.5]
-    moving = [v for v in vessels_list if (v.get('speed') or 0) >= 0.5]
-    cargo_vessels = [v for v in vessels_list if str(v.get('cargo', '')).lower() in ['cargo', 'conteneurs']]
+    at_quay = []
+    at_mouillage = []
+    moving = []
+    cargo_vessels = []
 
-    # Extraction du contexte temps réel
+    for v in vessels_list:
+        lat, lng, spd = v.get('lat', 0), v.get('lng', 0), v.get('speed') or 0
+        if str(v.get('cargo', '')).lower() in ['cargo', 'conteneurs']: cargo_vessels.append(v)
+
+        if spd < 0.5:
+            if point_in_polygon(lat, lng, QUAI_POLYGON):
+                at_quay.append(v)
+            else:
+                at_mouillage.append(v)
+        else:
+            moving.append(v)
+
     wind = context.get('wind_speed_kts', 0)
     waves = context.get('wave_height_m', 0)
     is_night = context.get('is_night', False)
     eur_usd = context.get('eur_usd', 1.08)
 
-    # --- 1. CONTENEURS (Basé sur la physique des navires présents) ---
     teu = 0
     for v in at_quay + cargo_vessels:
         length = v.get('length') or 0
-        if length > 50:
-            teu += (length / 20) * 180 * 0.75
+        if length > 50: teu += (length / 20) * 180 * 0.75
     conteneurs = int(teu)
 
-    # --- 2. OCCUPATION QUAIS (AIS pur) ---
     occupation = round((len(at_quay) / 6) * 100, 1)
 
-    # --- 3. RETARDS (Influencé par le vent, la houle et la congestion) ---
-    # Si vent > 20 kts ou houle > 2m, les opérations de manutention ralentissent
     meteo_penalty = 0
-    if wind > 20: meteo_penalty += (wind - 20) * 0.2 # +0.2h de retard par noeud au-dessus de 20
-    if waves > 2.0: meteo_penalty += (waves - 2.0) * 1.5 # +1.5h par mètre au-dessus de 2m
+    if wind > 20: meteo_penalty += (wind - 20) * 0.2
+    if waves > 2.0: meteo_penalty += (waves - 2.0) * 1.5
+    congestion_penalty = (len(at_mouillage) * 1.5)
+    retards = round(1.5 + congestion_penalty + meteo_penalty, 1)
 
-    congestion_ratio = len([v for v in moving if 0.5 <= (v.get('speed') or 0) < 3.0]) / total
-    retards = round(1.5 + (congestion_ratio * 8.0) + meteo_penalty, 1)
-
-    # --- 4. EFFICACITÉ (Influencée par la météo et le jour/nuit) ---
     engorgement = max(0, (len(at_quay) - 6) * 5) if len(at_quay) > 6 else 0
     meteo_eff_penalty = 0
-    if wind > 25: meteo_eff_penalty += 5 # Chute d'efficacité si vent fort
-    if is_night: meteo_eff_penalty += 3 # Ops nocturnes plus lentes
-
+    if wind > 25: meteo_eff_penalty += 5
+    if is_night: meteo_eff_penalty += 3
     efficacite = round(max(60.0, min(99.5, 95.0 - engorgement - meteo_eff_penalty)), 1)
 
-    # --- 5. ROTATION ---
     rotation = 3.2
     if len(quai_events) >= 4:
         arrivals = {e['mmsi']: e['time'] for e in quai_events if e['type'] == 'arrivee'}
@@ -200,40 +208,29 @@ def compute_kpis(vessels_list, context):
         rots = [(departs[m] - arrivals[m]).total_seconds() / 3600 for m in arrivals if m in departs and (departs[m] - arrivals[m]).total_seconds() > 0]
         if rots: rotation = round(sum(rots) / len(rots) / 24, 1)
 
-    # --- 6. COÛT / TEU (Influencé par le taux de change EUR/USD en temps réel) ---
-    # Le coût de base est estimé en USD, converti en EUR avec le taux live
     base_cost_usd = 150.00
     variable_cost_usd = 42.00
     cout_teu = round(((base_cost_usd + variable_cost_usd) / eur_usd), 2) if conteneurs == 0 else round(((85000 / conteneurs) + variable_cost_usd) / eur_usd, 2)
 
-    # --- 7. CO2 (Basé sur la physique : taille + vitesse + vent de face) ---
     co2_kg = 0.0
     for v in vessels_list:
         spd = v.get('speed') or 0
         size = (v.get('length') or 100) / 100
-        # Si le navire fait face au vent, il consomme plus
         wind_factor = 1.0 + (wind * 0.01)
         co2_kg += (120 + (spd * 8.5)) * size * 3.15 * wind_factor
     co2 = round(co2_kg / 1000, 2)
 
-    # --- 8. SATISFACTION (Dérivée des retards, de l'efficacité et de la météo) ---
     sat_pen = max(0, (retards - 2.0) * 5) + max(0, (90.0 - efficacite) * 1)
-    if waves > 2.5: sat_pen += 3 # Météo défavorable frustre les clients
+    if waves > 2.5: sat_pen += 3
     satisfaction = round(max(65.0, min(99.5, 98.0 - sat_pen)), 1)
 
     return {
-        'conteneurs': conteneurs,
-        'occupation': occupation,
-        'efficacite': efficacite,
-        'rotation': rotation,
-        'retards': retards,
-        'cout_teu': cout_teu,
-        'co2': co2,
-        'satisfaction': satisfaction,
+        'conteneurs': conteneurs, 'occupation': occupation, 'efficacite': efficacite,
+        'rotation': rotation, 'retards': retards, 'cout_teu': cout_teu,
+        'co2': co2, 'satisfaction': satisfaction,
         'metadata': {
-            'navires_total': total,
-            'navires_quai': len(at_quay),
-            'navires_mouvement': len(moving),
+            'navires_total': total, 'navires_quai': len(at_quay),
+            'navires_mouillage': len(at_mouillage), 'navires_mouvement': len(moving),
             'navires_cargo': len(cargo_vessels),
             'sources': f"Vent:{wind:.1f}kts, Houle:{waves:.1f}m, Nuit:{is_night}, EUR/USD:{eur_usd:.3f}"
         }
@@ -258,15 +255,20 @@ def ais_websocket_thread():
                 if meta and pos:
                     mmsi = str(meta.get('MMSI', ''))
                     with vessel_lock:
-                        was_at_quay = mmsi in vessels and (vessels[mmsi].get('speed') or 0) < 0.5
+                        was_at_quai = mmsi in vessels and point_in_polygon(vessels[mmsi].get('lat', 0), vessels[mmsi].get('lng', 0), QUAI_POLYGON)
+
                         if mmsi not in vessel_history: vessel_history[mmsi] = deque(maxlen=history_size)
                         vessel_history[mmsi].append(vessels[mmsi].copy() if mmsi in vessels else {})
+
                         new_speed = pos.get('SpeedOverGround', 0)
+                        new_lat = pos.get('Latitude', 0)
+                        new_lng = pos.get('Longitude', 0)
+
                         vessels[mmsi] = {
                             'id': mmsi, 'name': meta.get('ShipName', 'Inconnu'),
                             'type': determine_type(meta.get('ShipType', 'Cargo')),
                             'cargo': meta.get('ShipType', 'Cargo'), 'flag': meta.get('Flag', '--'),
-                            'lat': pos.get('Latitude', 0), 'lng': pos.get('Longitude', 0),
+                            'lat': new_lat, 'lng': new_lng,
                             'speed': new_speed, 'course': pos.get('CourseOverGround', 0),
                             'timestamp': datetime.now().isoformat(),
                             'length': meta.get('Length', 0), 'draft': meta.get('Draft', 0),
@@ -274,9 +276,16 @@ def ais_websocket_thread():
                             'eta': meta.get('ETA', ''), 'heading': pos.get('TrueHeading', 0),
                             'history': list(vessel_history.get(mmsi, []))[-10:]
                         }
-                        is_at_quay = new_speed < 0.5
-                        if was_at_quay and not is_at_quay: quai_events.append({'type': 'depart', 'mmsi': mmsi, 'time': datetime.now()})
-                        elif not was_at_quay and is_at_quay: quai_events.append({'type': 'arrivee', 'mmsi': mmsi, 'time': datetime.now()})
+
+                        is_at_quai = new_speed < 0.5 and point_in_polygon(new_lat, new_lng, QUAI_POLYGON)
+
+                        if was_at_quai and not is_at_quai:
+                            quai_events.append({'type': 'depart', 'mmsi': mmsi, 'time': datetime.now()})
+                            print(f"⚡ DÉPART QUAI : {meta.get('ShipName', mmsi)}")
+                        elif not was_at_quai and is_at_quai:
+                            quai_events.append({'type': 'arrivee', 'mmsi': mmsi, 'time': datetime.now()})
+                            print(f"📦 ARRIVÉE QUAI : {meta.get('ShipName', mmsi)}")
+
                         last_update = datetime.now()
                         socketio.emit('vessel_update', {'vessels': list(vessels.values()), 'stats': get_stats()})
         except Exception as e: print(f"Erreur message: {e}")
@@ -342,17 +351,11 @@ def get_stats_api(): return jsonify(get_stats())
 @app.route('/api/kpis')
 def get_kpis():
     try:
-        # 1. Récupérer le contexte temps réel (Météo, Change, Jour/Nuit)
         live_ctx = get_live_context()
-
-        # 2. Récupérer les navires
         with vessel_lock:
             vl = list(vessels.values())
-            if len(vl) == 0 and use_test_data:
-                vl = get_test_vessels()
-
-        # 3. Calculer les KPIs en injectant le contexte live
-        return jsonify(compute_kpis(vl, live_ctx))
+            if len(vl) == 0 and use_test_data: vl = get_test_vessels()
+            return jsonify(compute_kpis(vl, live_ctx))
     except Exception as e:
         print(f"!!! ERREUR KPIs !!!\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
@@ -360,13 +363,8 @@ def get_kpis():
 @app.route('/api/weather')
 def get_weather():
     try:
-        # On retourne le cache de la météo qu'on a déjà récupéré pour les KPIs
         ctx = get_live_context()
-        h = ctx.get('wave_height_m', 1.2)
-        p = 7.5 # Période par défaut
-        d = 215
-        s = ctx.get('swell_m', 0.9)
-        return jsonify({'hourly': {'wave_height': [h], 'wave_direction': [d], 'wave_period': [p], 'swell_wave_height': [s]}})
+        return jsonify({'hourly': {'wave_height': [ctx.get('wave_height_m', 1.2)], 'wave_direction': [215], 'wave_period': [7.5], 'swell_wave_height': [ctx.get('swell_m', 0.9)]}})
     except: pass
     return jsonify({'hourly': {'wave_height': [1.2], 'wave_direction': [215], 'wave_period': [7.5], 'swell_wave_height': [0.9]}})
 
@@ -391,15 +389,12 @@ def static_files(filename): return send_from_directory('static', filename)
 if __name__ == '__main__':
     print("=" * 60)
     print("S-Wing Reunion PRO - Serveur")
-    print("Enrichissement KPIs : Meteo + Change EUR/USD + Jour/Nuit")
+    print("Géofencing actif sur le périmètre des quais")
     print("=" * 60)
     print(f"Web: http://localhost:{PORT}")
-    print("=" * 60)
 
-    # Pré-charger la météo au démarrage
-    print("Récupération des conditions temps réel (APIs gratuites)...")
     get_live_context()
-    print("Contexte initialisé.")
+    print("Contexte météo initialisé.")
 
     threading.Thread(target=ais_websocket_thread, daemon=True).start()
     os.makedirs('templates', exist_ok=True)
