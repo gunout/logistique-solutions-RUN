@@ -26,7 +26,7 @@ import random
 # CONFIGURATION
 # ============================================================
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(__name__, static_folder='static', template_folder='docs')
 app.config['SECRET_KEY'] = 'swing-reunion-pro-2024'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
