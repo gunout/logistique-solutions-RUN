@@ -397,7 +397,7 @@ if __name__ == '__main__':
     print("Contexte météo initialisé.")
 
     threading.Thread(target=ais_websocket_thread, daemon=True).start()
-    os.makedirs('templates', exist_ok=True)
+    os.makedirs('docs', exist_ok=True)
     os.makedirs('static', exist_ok=True)
 
     try:
