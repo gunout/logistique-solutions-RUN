@@ -8,341 +8,610 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         :root {
-            --bg-void: #030507;
-            --bg-panel: #0a0e12;
-            --border-dim: #152030;
-            --border-lit: #243448;
-            --c-main: #00ffc8;
-            --c-amber: #ffb800;
-            --c-red: #ff003c;
-            --c-blue: #00aaff;
-            --c-green: #40e080;
-            --text-hi: #e0f7f0;
-            --text-lo: #4a6a70;
+            /* PALETTE BLEU BLANC ROUGE */
+            --bleu-france: #0055A4;      /* Bleu institutionnel */
+            --bleu-nuit:   #0A1B3D;      /* Bleu marine profond */
+            --bleu-clair:  #2E7DD1;      /* Bleu clair accent */
+            --bleu-pale:   #E8F0F9;      /* Bleu très pâle fonds */
+            --blanc:       #FFFFFF;
+            --blanc-casse: #F5F7FA;
+            --rouge-france:#EF4135;      /* Rouge Marianne */
+            --rouge-fonce: #C1272D;      /* Rouge foncé */
+            --gris-texte:  #1A2942;
+            --gris-moyen:  #64748B;
+            --gris-clair:  #CBD5E1;
+            --gris-bord:   #E2E8F0;
+
+            /* Rôles sémantiques */
+            --ok:      #10B981;
+            --warn:    #F59E0B;
+            --danger:  var(--rouge-france);
+            --info:    var(--bleu-clair);
+
+            /* Mapping ancien → nouveau (compat) */
+            --bg-void: var(--blanc-casse);
+            --bg-panel: var(--blanc);
+            --border-dim: var(--gris-bord);
+            --border-lit: var(--gris-clair);
+            --c-main: var(--bleu-france);
+            --c-amber: var(--warn);
+            --c-red: var(--rouge-france);
+            --c-blue: var(--bleu-clair);
+            --c-green: var(--ok);
+            --text-hi: var(--gris-texte);
+            --text-lo: var(--gris-moyen);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'JetBrains Mono', monospace; background: var(--bg-void); color: var(--text-hi); overflow-x: hidden; }
-        body::before { content: ""; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,255,200,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,200,0.02) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
-        body::after { content: ""; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px); pointer-events: none; z-index: 9999; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--blanc-casse);
+            color: var(--gris-texte);
+            overflow-x: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+        }
 
-        .cyber-panel { background: var(--bg-panel); border: 1px solid var(--border-dim); position: relative; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); padding: 16px 16px 16px 20px; transition: border-color 0.3s; }
-        .cyber-panel::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--c-main), transparent); opacity: 0.4; }
-        .cyber-panel:hover { border-color: rgba(0,255,200,0.2); }
+        /* Bandeau tricolore discret en haut */
+        .tricolore-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            z-index: 10002;
+            background: linear-gradient(90deg,
+                var(--bleu-france) 0%, var(--bleu-france) 33.33%,
+                var(--blanc) 33.33%, var(--blanc) 66.66%,
+                var(--rouge-france) 66.66%, var(--rouge-france) 100%);
+        }
 
-        .hdr { font-size: 10px; color: var(--text-lo); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        .hdr i { color: var(--c-main); font-size: 11px; }
-        .hdr::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-dim), transparent); }
+        /* Panneaux PRO */
+        .pro-panel {
+            background: var(--blanc);
+            border: 1px solid var(--gris-bord);
+            border-radius: 8px;
+            padding: 16px 18px;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+        }
+        .pro-panel:hover {
+            box-shadow: 0 4px 12px rgba(0, 85, 164, 0.08);
+            border-color: var(--bleu-clair);
+        }
+        .pro-panel::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--bleu-france), var(--bleu-clair), transparent);
+            border-radius: 8px 8px 0 0;
+            opacity: 0.7;
+        }
+        .pro-panel.accent-red::before { background: linear-gradient(90deg, var(--rouge-france), var(--rouge-fonce), transparent); }
 
-        .kv { font-size: 22px; font-weight: 800; line-height: 1; color: var(--c-main); text-shadow: 0 0 8px rgba(0,255,200,0.3); transition: color 0.3s; }
-        .kv.nd { color: var(--text-lo); text-shadow: none; font-size: 16px; }
+        .hdr {
+            font-size: 10.5px;
+            color: var(--gris-moyen);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hdr i { color: var(--bleu-france); font-size: 12px; }
+        .hdr::after {
+            content: "";
+            flex: 1; height: 1px;
+            background: linear-gradient(90deg, var(--gris-bord), transparent);
+        }
 
-        #map { width: 100%; height: 100%; background: #050809; }
-        .leaflet-container { background: #050809 !important; }
-        .leaflet-tile-pane { filter: saturate(0.2) brightness(0.35) contrast(1.3) hue-rotate(120deg); }
-        .leaflet-control-zoom a { background: var(--bg-panel) !important; color: var(--c-main) !important; border-color: var(--border-dim) !important; }
-        .map-vig { position: absolute; inset: 0; background: radial-gradient(circle at center, transparent 40%, var(--bg-void) 100%); pointer-events: none; z-index: 500; }
+        .kv {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--bleu-france);
+            letter-spacing: -0.5px;
+            font-family: 'Inter', sans-serif;
+        }
+        .kv.nd { color: var(--gris-moyen); font-size: 16px; font-weight: 500; }
+        .kv-sub { font-size: 10px; color: var(--gris-moyen); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .v-mk { width: 10px; height: 10px; background: var(--c-main); transform: rotate(45deg); box-shadow: 0 0 6px var(--c-main); position: relative; }
-        .v-mk.slow { background: var(--c-amber); box-shadow: 0 0 6px var(--c-amber); }
-        .v-mk.stopped { background: var(--c-red); box-shadow: 0 0 6px var(--c-red); }
-        .v-mk::after { content: ""; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 1px solid inherit; transform: translate(-50%,-50%) rotate(-45deg); opacity: 0.4; animation: vping 2s infinite; }
-        @keyframes vping { 0% { width: 10px; height: 10px; opacity: 0.5; } 100% { width: 30px; height: 30px; opacity: 0; } }
+        /* CARTE */
+        #map { width: 100%; height: 100%; background: #EAF1F8; }
+        .leaflet-container { background: #EAF1F8 !important; font-family: 'Inter', sans-serif !important; }
+        .leaflet-control-zoom a {
+            background: var(--blanc) !important;
+            color: var(--bleu-france) !important;
+            border-color: var(--gris-bord) !important;
+            font-weight: 600 !important;
+        }
+        .leaflet-control-zoom a:hover { background: var(--bleu-pale) !important; }
+        .map-vig {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at center, transparent 55%, rgba(10,27,61,0.15) 100%);
+            pointer-events: none;
+            z-index: 500;
+        }
 
-        /* Popups Leaflet */
+        /* Marqueurs navires */
+        .v-mk {
+            width: 14px; height: 14px;
+            background: var(--bleu-france);
+            border: 2px solid var(--blanc);
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px var(--bleu-france), 0 2px 4px rgba(0,85,164,0.3);
+            position: relative;
+        }
+        .v-mk.slow {
+            background: var(--warn);
+            box-shadow: 0 0 0 1px var(--warn), 0 2px 4px rgba(245,158,11,0.3);
+        }
+        .v-mk.stopped {
+            background: var(--rouge-france);
+            box-shadow: 0 0 0 1px var(--rouge-france), 0 2px 4px rgba(239,65,53,0.4);
+        }
+        .v-mk::after {
+            content: "";
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 14px; height: 14px;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            animation: vping 2s infinite;
+            opacity: 0.5;
+        }
+        @keyframes vping {
+            0%   { width: 14px; height: 14px; opacity: 0.6; }
+            100% { width: 36px; height: 36px; opacity: 0; }
+        }
+
+        /* Popups Leaflet PRO */
         .leaflet-popup-content-wrapper {
-            background: var(--bg-panel) !important;
-            color: var(--text-hi) !important;
-            border: 1px solid var(--c-main) !important;
-            border-radius: 2px !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            box-shadow: 0 0 30px rgba(0,255,200,0.15) !important;
+            background: var(--blanc) !important;
+            color: var(--gris-texte) !important;
+            border: 1px solid var(--gris-bord) !important;
+            border-top: 3px solid var(--bleu-france) !important;
+            border-radius: 6px !important;
+            font-family: 'Inter', sans-serif !important;
+            box-shadow: 0 12px 30px rgba(10,27,61,0.18) !important;
             padding: 0 !important;
         }
         .leaflet-popup-content {
-            margin: 12px 14px !important;
-            min-width: 300px !important;
+            margin: 14px 16px !important;
+            min-width: 320px !important;
             max-width: 400px !important;
         }
         .leaflet-popup-tip {
-            background: var(--bg-panel) !important;
-            border: 1px solid var(--c-main) !important;
+            background: var(--blanc) !important;
+            border: 1px solid var(--gris-bord) !important;
         }
         .leaflet-popup-close-button {
-            color: var(--c-red) !important;
+            color: var(--rouge-france) !important;
             font-size: 18px !important;
             padding: 6px 8px !important;
-            opacity: 0.7 !important;
+            opacity: 0.6 !important;
             transition: opacity 0.2s !important;
         }
         .leaflet-popup-close-button:hover { opacity: 1 !important; }
 
-        .ll { font-size: 11px; border-bottom: 1px solid #15203010; padding: 4px 0; color: var(--text-lo); }
-        .ll .t { color: var(--c-main); margin-right: 8px; }
-        .ll .w { color: var(--c-amber); } .ll .e { color: var(--c-red); }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} } .blink { animation: blink 1.5s infinite; }
+        /* Log console */
+        .ll {
+            font-size: 11.5px;
+            padding: 5px 8px;
+            color: var(--gris-moyen);
+            border-bottom: 1px solid var(--gris-bord);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .ll .t { color: var(--bleu-france); margin-right: 8px; font-weight: 600; }
+        .ll .w { color: var(--warn); }
+        .ll .e { color: var(--rouge-france); font-weight: 600; }
 
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg-void); } ::-webkit-scrollbar-thumb { background: var(--border-dim); }
-        .vt tr { border-bottom: 1px solid #15203030; transition: background 0.2s; } .vt tr:hover { background: rgba(0,255,200,0.03); }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .blink { animation: blink 1.6s infinite; }
 
-        .radar-sw { position: absolute; width: 100%; height: 100%; background: conic-gradient(from 0deg, transparent 0%, rgba(0,255,200,0.15) 8%, transparent 12%); animation: rrot 3s linear infinite; border-radius: 50%; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--blanc-casse); }
+        ::-webkit-scrollbar-thumb { background: var(--gris-clair); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--bleu-clair); }
+
+        .vt tr { border-bottom: 1px solid var(--gris-bord); transition: background 0.15s; }
+        .vt tr:hover { background: var(--bleu-pale); }
+        .vt thead th { background: var(--blanc-casse); color: var(--gris-moyen); font-weight: 600; font-size: 10.5px; letter-spacing: 0.5px; }
+
+        /* Radar */
+        .radar-sw {
+            position: absolute; width: 100%; height: 100%;
+            background: conic-gradient(from 0deg, transparent 0%, rgba(0,85,164,0.25) 8%, transparent 12%);
+            animation: rrot 3s linear infinite;
+            border-radius: 50%;
+        }
         @keyframes rrot { 100% { transform: rotate(360deg); } }
 
-        .tab-nav { display: flex; gap: 4px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border-dim); }
-        .tab-btn { font-size: 10px; padding: 8px 14px; background: transparent; color: var(--text-lo); border: 1px solid transparent; border-bottom: none; cursor: pointer; letter-spacing: 1px; transition: all 0.2s; white-space: nowrap; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
-        .tab-btn.active { color: var(--c-main); border-color: var(--c-main); background: rgba(0,255,200,0.05); }
-        .tab-btn:hover { color: var(--text-hi); }
-        .tab-content { display: none; } .tab-content.active { display: block; }
+        /* Onglets PRO */
+        .tab-nav {
+            display: flex; gap: 4px; margin-bottom: 16px;
+            overflow-x: auto; padding-bottom: 0;
+            border-bottom: 2px solid var(--gris-bord);
+        }
+        .tab-btn {
+            font-size: 12px;
+            padding: 10px 18px;
+            background: transparent;
+            color: var(--gris-moyen);
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-btn.active {
+            color: var(--bleu-france);
+            border-bottom-color: var(--bleu-france);
+            background: linear-gradient(180deg, transparent, var(--bleu-pale));
+        }
+        .tab-btn:hover { color: var(--bleu-france); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-        .alert-bar { font-size: 10px; padding: 6px 12px; border-left: 3px solid; background: rgba(255,255,255,0.02); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
-        .alert-ok { border-color: var(--c-main); color: var(--c-main); }
-        .alert-warn { border-color: var(--c-amber); color: var(--c-amber); }
-        .alert-err { border-color: var(--c-red); color: var(--c-red); }
+        /* Alertes */
+        .alert-bar {
+            font-size: 12px;
+            padding: 10px 14px;
+            border-left: 4px solid;
+            background: var(--blanc);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .alert-ok   { border-color: var(--ok); color: #065F46; background: #ECFDF5; }
+        .alert-warn { border-color: var(--warn); color: #92400E; background: #FFFBEB; }
+        .alert-err  { border-color: var(--rouge-france); color: var(--rouge-fonce); background: #FEF2F2; }
 
-        #boot-screen { position: fixed; inset: 0; z-index: 10001; background: var(--bg-void); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; transition: opacity 0.5s; }
+        /* Boot screen */
+        #boot-screen {
+            position: fixed; inset: 0; z-index: 10001;
+            background: linear-gradient(135deg, var(--bleu-nuit), var(--bleu-france));
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 20px; transition: opacity 0.5s;
+        }
         #boot-screen.hide { opacity: 0; pointer-events: none; }
+        #boot-screen .title { color: var(--blanc); font-weight: 800; letter-spacing: 6px; font-size: 14px; }
+        #boot-screen .sub { color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 2px; }
         @keyframes boot-bar { 0%{width:0} 100%{width:100%} }
-        .boot-progress { width: 300px; height: 2px; background: var(--border-dim); position: relative; overflow: hidden; }
-        .boot-progress::after { content: ""; position: absolute; height: 100%; background: var(--c-main); box-shadow: 0 0 10px var(--c-main); animation: boot-bar 3s ease-in-out forwards; }
+        .boot-progress {
+            width: 320px; height: 3px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px; overflow: hidden;
+            position: relative;
+        }
+        .boot-progress::after {
+            content: ""; position: absolute; height: 100%;
+            background: linear-gradient(90deg, var(--blanc), var(--rouge-france));
+            animation: boot-bar 3s ease-in-out forwards;
+        }
 
-        #error-screen { position: fixed; inset: 0; z-index: 10000; background: var(--bg-void); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; }
+        /* Error screen */
+        #error-screen {
+            position: fixed; inset: 0; z-index: 10000;
+            background: var(--blanc-casse);
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; gap: 24px;
+        }
         #error-screen.active { display: flex; }
-        .err-box { border: 1px solid var(--c-red); clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); padding: 40px 60px; background: rgba(255,0,60,0.04); max-width: 600px; }
-        @keyframes glitch { 0%,100%{transform:translate(0)} 20%{transform:translate(-2px,1px)} 40%{transform:translate(2px,-1px)} 60%{transform:translate(-1px,-1px)} 80%{transform:translate(1px,2px)} }
-        .glitch { animation: glitch 0.3s infinite; }
+        .err-box {
+            background: var(--blanc);
+            border-top: 4px solid var(--rouge-france);
+            border-radius: 8px;
+            padding: 48px 64px;
+            box-shadow: 0 20px 40px rgba(10,27,61,0.12);
+            max-width: 600px;
+        }
+
+        /* Header */
+        .header-pro {
+            background: var(--blanc);
+            border-bottom: 1px solid var(--gris-bord);
+            box-shadow: 0 1px 3px rgba(10,27,61,0.05);
+        }
+        .logo-box {
+            background: linear-gradient(135deg, var(--bleu-france), var(--bleu-nuit));
+            color: var(--blanc);
+            padding: 8px 14px;
+            border-radius: 6px;
+            display: flex; align-items: center; gap: 8px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-size: 13px;
+            box-shadow: 0 2px 6px rgba(0,85,164,0.3);
+        }
+        .logo-box i { color: var(--blanc); }
+
+        /* Footer */
+        footer {
+            background: var(--bleu-nuit);
+            color: rgba(255,255,255,0.65);
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            padding: 14px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        /* Statut dot */
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--gris-clair);
+            display: inline-block;
+        }
+        .status-dot.live { background: var(--ok); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+        .status-dot.offline { background: var(--warn); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
     </style>
 </head>
-<body class="relative z-10">
+<body class="relative">
+
+    <div class="tricolore-bar"></div>
 
     <!-- ECRAN DE CHARGEMENT -->
     <div id="boot-screen">
-        <div class="text-xs tracking-[6px] text-[var(--c-main)]">S-WING REUNION PRO</div>
-        <div class="text-[10px] text-[var(--text-lo)] tracking-widest" id="boot-status">INITIALISATION SYSTEME...</div>
+        <div class="title">S-WING REUNION PRO</div>
+        <div class="sub" id="boot-status">INITIALISATION SYSTEME...</div>
         <div class="boot-progress"></div>
     </div>
 
-    <!-- ECRAN D'ERREUR CRITIQUE -->
+    <!-- ECRAN D'ERREUR -->
     <div id="error-screen">
         <div class="err-box">
-            <div class="text-[var(--c-red)] text-4xl font-bold tracking-widest glitch mb-4">CONNEXION PERDUE</div>
-            <div class="text-[var(--text-lo)] text-xs leading-6 mb-6">
-                SERVEUR FLASK INJOIGNABLE<br>
-                VERIFIEZ QUE <span class="text-[var(--text-hi)]">SERV.PY</span> EST ACTIF SUR <span class="text-[var(--c-amber)]">PORT 5001</span><br><br>
-                <span class="text-[var(--text-lo)]">$</span> <span class="text-[var(--c-main)]">python serv.py</span>
+            <div style="color: var(--rouge-france); font-size: 42px; font-weight: 800; letter-spacing: 3px; margin-bottom: 16px;">CONNEXION PERDUE</div>
+            <div style="color: var(--gris-moyen); font-size: 13px; line-height: 1.8; margin-bottom: 24px;">
+                LE SERVEUR FLASK EST INJOIGNABLE<br>
+                VERIFIEZ QUE <span style="color:var(--gris-texte);font-weight:600;">server.py</span> EST ACTIF SUR LE PORT
+                <span style="color:var(--bleu-france);font-weight:700;">5001</span><br><br>
+                <span style="color:var(--gris-moyen);font-family:'JetBrains Mono',monospace;">$</span>
+                <span style="color:var(--bleu-france);font-family:'JetBrains Mono',monospace;font-weight:600;">python server.py</span>
             </div>
-            <button onclick="location.reload()" class="text-xs tracking-widest border border-[var(--c-red)] px-6 py-2 text-[var(--c-red)] hover:bg-[rgba(255,0,60,0.1)] transition-colors cursor-pointer">
-                <i class="fa-solid fa-rotate-right mr-2"></i>REESSAYER
+            <button onclick="location.reload()" style="background: var(--rouge-france); color: var(--blanc); border: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; letter-spacing: 1px; cursor: pointer; font-size: 12px; transition: background 0.2s;">
+                <i class="fa-solid fa-rotate-right" style="margin-right: 8px;"></i>REESSAYER
             </button>
         </div>
-        <div class="text-[10px] text-[var(--text-lo)] mt-8" id="err-detail">---</div>
+        <div style="color: var(--gris-moyen); font-size: 11px;" id="err-detail">---</div>
     </div>
 
-    <!-- HEADER TACTIQUE -->
-    <header class="border-b border-[#152030] bg-[#030507cc] backdrop-blur-sm sticky top-0 z-[1000] px-4 py-2">
+    <!-- HEADER -->
+    <header class="header-pro sticky top-0 z-[1000] px-5 py-3">
         <div class="max-w-[2400px] mx-auto flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 border border-[var(--c-main)] px-3 py-1" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
-                    <i class="fa-solid fa-satellite-dish text-[var(--c-main)] text-sm"></i>
-                    <span class="text-sm font-bold tracking-widest text-[var(--c-main)]">S-WING</span>
+                <div class="logo-box">
+                    <i class="fa-solid fa-anchor"></i>
+                    <span>S-WING</span>
                 </div>
                 <div class="hidden md:block">
-                    <div class="text-xs font-bold tracking-wider text-[var(--text-hi)]">REUNION PORT COMMAND</div>
-                    <div class="text-[10px] tracking-widest text-[var(--text-lo)]">LE PORT 97420 // INDIAN OCEAN</div>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--gris-texte); letter-spacing: 0.5px;">RÉUNION PORT COMMAND</div>
+                    <div style="font-size: 11px; color: var(--gris-moyen); letter-spacing: 0.5px;">LE PORT 97420 · OCÉAN INDIEN</div>
                 </div>
             </div>
-            <div class="flex items-center gap-6 text-xs">
+            <div class="flex items-center gap-6" style="font-size: 12px;">
                 <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-[var(--text-lo)]" id="status-dot"></div>
-                    <span class="text-[var(--text-lo)]" id="status-text">INIT...</span>
+                    <span class="status-dot" id="status-dot"></span>
+                    <span style="color: var(--gris-moyen); font-weight: 600;" id="status-text">INIT...</span>
                 </div>
-                <div class="hidden sm:flex items-center gap-2 text-[var(--text-lo)]">
-                    <i class="fa-solid fa-wave-square text-[var(--c-blue)]"></i>
-                    <span>PKT: <span id="msg-count" class="text-[var(--text-hi)]">0</span></span>
+                <div class="hidden sm:flex items-center gap-2" style="color: var(--gris-moyen);">
+                    <i class="fa-solid fa-tower-broadcast" style="color: var(--bleu-clair);"></i>
+                    <span>PAQUETS : <span id="msg-count" style="color: var(--gris-texte); font-weight: 700;">0</span></span>
                 </div>
-                <div class="font-bold tracking-wider text-[var(--c-amber)]" id="clock">--:--:--</div>
+                <div style="font-weight: 700; color: var(--bleu-france); letter-spacing: 1px; font-family: 'JetBrains Mono', monospace;" id="clock">--:--:--</div>
             </div>
         </div>
     </header>
 
-    <!-- CONTENU PRINCIPAL -->
-    <main class="p-3 max-w-[2400px] mx-auto space-y-3" id="main-content">
+    <main class="p-4 max-w-[2400px] mx-auto space-y-4" id="main-content">
 
-        <!-- BARRE D'ALERTES DYNAMIQUES -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-2" id="alerts-container">
-            <div class="alert-bar alert-ok"><i class="fa-solid fa-check-circle"></i> <span>SYSTEME: INITIALISATION...</span></div>
-            <div class="alert-bar alert-ok"><i class="fa-solid fa-ship"></i> <span>TRAFFIC: ATTENTE DONNEES...</span></div>
-            <div class="alert-bar alert-ok"><i class="fa-solid fa-cloud-sun"></i> <span>METEO: ANALYSE EN COURS...</span></div>
+        <!-- ALERTES -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="alerts-container">
+            <div class="alert-bar alert-ok"><i class="fa-solid fa-circle-check"></i> <span>SYSTÈME : INITIALISATION...</span></div>
+            <div class="alert-bar alert-ok"><i class="fa-solid fa-ship"></i> <span>TRAFIC : EN ATTENTE DES DONNÉES...</span></div>
+            <div class="alert-bar alert-ok"><i class="fa-solid fa-cloud-sun"></i> <span>MÉTÉO : ANALYSE EN COURS...</span></div>
         </div>
 
-        <!-- 8 KPIs PORTUAIRES -->
+        <!-- KPIs -->
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-box"></i> CONTENEURS</div><div class="kv nd" id="k-cont">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">TRAITES</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-warehouse"></i> OCP. QUAIS</div><div class="kv nd" id="k-ocp">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">TAUX %</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-face-smile"></i> SATISFACTION</div><div class="kv nd" id="k-sat">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">CLIENTS %</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-clock"></i> RETARDS</div><div class="kv nd" id="k-ret">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">MOY. (H)</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-gauge"></i> EFFICACITE</div><div class="kv nd" id="k-eff">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">OPS %</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-rotate"></i> ROTATION</div><div class="kv nd" id="k-rot">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">JOURS</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-euro-sign"></i> COUT/TEU</div><div class="kv nd" id="k-cost">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">EUROS</div></div>
-            <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-leaf"></i> CO2</div><div class="kv nd" id="k-co2">N/D</div><div class="text-[10px] text-[var(--text-lo)] mt-1">TONNES</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-box"></i> CONTENEURS</div><div class="kv nd" id="k-cont">N/D</div><div class="kv-sub">TRAITÉS</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-warehouse"></i> OCC. QUAIS</div><div class="kv nd" id="k-ocp">N/D</div><div class="kv-sub">TAUX %</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-face-smile"></i> SATISFACTION</div><div class="kv nd" id="k-sat">N/D</div><div class="kv-sub">CLIENTS %</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-clock"></i> RETARDS</div><div class="kv nd" id="k-ret">N/D</div><div class="kv-sub">MOY. (H)</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-gauge-high"></i> EFFICACITÉ</div><div class="kv nd" id="k-eff">N/D</div><div class="kv-sub">OPS %</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-rotate"></i> ROTATION</div><div class="kv nd" id="k-rot">N/D</div><div class="kv-sub">JOURS</div></div>
+            <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-euro-sign"></i> COÛT / TEU</div><div class="kv nd" id="k-cost">N/D</div><div class="kv-sub">EUROS</div></div>
+            <div class="pro-panel accent-red"><div class="hdr"><i class="fa-solid fa-leaf"></i> CO₂</div><div class="kv nd" id="k-co2">N/D</div><div class="kv-sub">TONNES</div></div>
         </div>
 
-        <!-- NAVIGATION PAR ONGLETS -->
+        <!-- ONGLETS -->
         <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('tab-map', this)"><i class="fa-solid fa-map-location-dot mr-2"></i>CARTE & AIS</button>
-            <button class="tab-btn" onclick="switchTab('tab-analytics', this)"><i class="fa-solid fa-chart-line mr-2"></i>ANALYTICS</button>
-            <button class="tab-btn" onclick="switchTab('tab-ia', this)"><i class="fa-solid fa-brain mr-2"></i>PREDICTIONS IA</button>
-            <button class="tab-btn" onclick="switchTab('tab-ops', this)"><i class="fa-solid fa-list-check mr-2"></i>OPERATIONS</button>
-            <button class="tab-btn" onclick="switchTab('tab-reports', this)"><i class="fa-solid fa-file-export mr-2"></i>RAPPORTS & EXPORT</button>
+            <button class="tab-btn active" onclick="switchTab('tab-map', this)"><i class="fa-solid fa-map-location-dot" style="margin-right:8px;"></i>CARTE & AIS</button>
+            <button class="tab-btn" onclick="switchTab('tab-analytics', this)"><i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>ANALYTIQUE</button>
+            <button class="tab-btn" onclick="switchTab('tab-ia', this)"><i class="fa-solid fa-brain" style="margin-right:8px;"></i>PRÉDICTIONS IA</button>
+            <button class="tab-btn" onclick="switchTab('tab-ops', this)"><i class="fa-solid fa-list-check" style="margin-right:8px;"></i>OPÉRATIONS</button>
+            <button class="tab-btn" onclick="switchTab('tab-reports', this)"><i class="fa-solid fa-file-export" style="margin-right:8px;"></i>RAPPORTS & EXPORT</button>
         </div>
 
-        <!-- TAB 1: CARTE & AIS -->
+        <!-- TAB 1 : CARTE -->
         <div id="tab-map" class="tab-content active">
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-3" style="height:550px;">
-                <div class="lg:col-span-3 cyber-panel relative p-0 !overflow-hidden">
-                    <div class="absolute top-3 left-4 z-[1000]"><div class="text-[10px] tracking-widest text-[var(--c-main)] bg-[#030507cc] px-2 py-1 border border-[var(--border-dim)]">// MAP 21.115°S 55.536°E</div></div>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4" style="height:560px;">
+                <div class="lg:col-span-3 pro-panel relative p-0" style="overflow:hidden;">
+                    <div style="position:absolute;top:12px;left:16px;z-index:1000;">
+                        <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--bleu-france);background:var(--blanc);padding:6px 12px;border-radius:4px;border:1px solid var(--gris-bord);box-shadow:0 2px 6px rgba(10,27,61,0.08);">
+                            <i class="fa-solid fa-location-crosshairs" style="margin-right:6px;"></i>21.115°S · 55.536°E
+                        </div>
+                    </div>
                     <div id="map"></div>
                     <div class="map-vig"></div>
                 </div>
-                <div class="flex flex-col gap-3">
-                    <div class="cyber-panel flex-1">
-                        <div class="hdr"><i class="fa-solid fa-cloud-bolt"></i> METEO MARITIME</div>
-                        <div class="space-y-3 text-xs" id="weather-panel"><div class="text-center text-[var(--text-lo)] py-8">ATTENTE...</div></div>
+                <div class="flex flex-col gap-4">
+                    <div class="pro-panel flex-1">
+                        <div class="hdr"><i class="fa-solid fa-cloud-bolt"></i> MÉTÉO MARITIME</div>
+                        <div class="space-y-3 text-xs" id="weather-panel"><div class="text-center" style="color:var(--gris-moyen);padding:32px 0;">EN ATTENTE...</div></div>
                     </div>
-                    <div class="cyber-panel relative flex flex-col items-center justify-center" style="min-height:150px;">
-                        <div class="hdr w-full"><i class="fa-solid fa-crosshairs"></i> PROXIMITE</div>
-                        <div class="relative w-24 h-24 rounded-full border border-[var(--border-dim)] flex items-center justify-center">
-                            <div class="absolute w-1/2 h-1/2 border-r border-b border-[var(--border-dim)] rounded-br-full"></div>
+                    <div class="pro-panel relative flex flex-col items-center justify-center" style="min-height:160px;">
+                        <div class="hdr w-full"><i class="fa-solid fa-crosshairs"></i> PROXIMITÉ</div>
+                        <div class="relative" style="width:100px;height:100px;border-radius:50%;border:1px solid var(--gris-bord);display:flex;align-items:center;justify-content:center;background:radial-gradient(circle, var(--bleu-pale), var(--blanc));">
+                            <div style="position:absolute;width:50%;height:50%;border-right:1px solid var(--gris-clair);border-bottom:1px solid var(--gris-clair);border-radius:0 0 100% 0;"></div>
                             <div class="radar-sw"></div>
-                            <div class="w-1.5 h-1.5 bg-[var(--c-main)] rounded-full z-10 shadow-[0_0_6px_var(--c-main)]"></div>
+                            <div style="width:8px;height:8px;background:var(--bleu-france);border-radius:50%;z-index:10;box-shadow:0 0 0 3px rgba(0,85,164,0.2);"></div>
                         </div>
-                        <div class="absolute bottom-2 right-4 text-[10px] text-[var(--text-lo)]" id="radar-ct">0 TARGETS</div>
+                        <div style="position:absolute;bottom:12px;right:16px;font-size:11px;color:var(--gris-moyen);font-weight:600;" id="radar-ct">0 CIBLES</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: ANALYTICS -->
+        <!-- TAB 2 : ANALYTIQUE -->
         <div id="tab-analytics" class="tab-content">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-chart-pie"></i> TYPES NAVIRES (AIS)</div><div style="height:280px;position:relative;"><canvas id="ch-type"></canvas></div></div>
-                <div class="cyber-panel"><div class="hdr"><i class="fa-solid fa-signal"></i> DISTRIBUTION VITESSES</div><div style="height:280px;"><canvas id="ch-spd"></canvas></div></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-chart-pie"></i> TYPES DE NAVIRES (AIS)</div><div style="height:300px;position:relative;"><canvas id="ch-type"></canvas></div></div>
+                <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-signal"></i> DISTRIBUTION DES VITESSES</div><div style="height:300px;"><canvas id="ch-spd"></canvas></div></div>
             </div>
-            <div class="cyber-panel mt-3">
-                <div class="hdr"><i class="fa-solid fa-terminal"></i> SYS.LOG LIVE</div>
-                <div class="overflow-y-auto overflow-x-hidden" style="max-height:200px;" id="log-box"><div class="ll"><span class="t">[--:--:--]</span> SYSTEM BOOT...</div></div>
+            <div class="pro-panel mt-4">
+                <div class="hdr"><i class="fa-solid fa-terminal"></i> JOURNAL SYSTÈME</div>
+                <div class="overflow-y-auto" style="max-height:220px;border:1px solid var(--gris-bord);border-radius:4px;" id="log-box">
+                    <div class="ll"><span class="t">[--:--:--]</span> DÉMARRAGE SYSTÈME...</div>
+                </div>
             </div>
         </div>
 
-        <!-- TAB 3: PREDICTIONS IA -->
+        <!-- TAB 3 : PRÉDICTIONS -->
         <div id="tab-ia" class="tab-content">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                <div class="lg:col-span-2 cyber-panel">
-                    <div class="hdr"><i class="fa-solid fa-brain"></i> MODELE PREDICTIF TRAFIC (J+7)</div>
-                    <div style="height:300px;"><canvas id="ch-pred"></canvas></div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="lg:col-span-2 pro-panel">
+                    <div class="hdr"><i class="fa-solid fa-brain"></i> MODÈLE PRÉDICTIF TRAFIC (J+7)</div>
+                    <div style="height:320px;"><canvas id="ch-pred"></canvas></div>
                 </div>
-                <div class="flex flex-col gap-3">
-                    <div class="cyber-panel flex-1">
-                        <div class="hdr"><i class="fa-solid fa-chart-simple"></i> METRIQUES IA</div>
+                <div class="flex flex-col gap-4">
+                    <div class="pro-panel flex-1">
+                        <div class="hdr"><i class="fa-solid fa-chart-simple"></i> MÉTRIQUES IA</div>
                         <div class="space-y-4 text-xs mt-4">
-                            <div class="flex justify-between"><span class="text-[var(--text-lo)]">TENDANCE</span><span id="ia-trend" class="font-bold">N/D</span></div>
-                            <div class="flex justify-between"><span class="text-[var(--text-lo)]">PIC PREVU</span><span id="ia-peak" class="font-bold text-[var(--c-amber)]">N/D</span></div>
-                            <div class="flex justify-between"><span class="text-[var(--text-lo)]">CONFIANCE</span><span id="ia-conf" class="font-bold text-[var(--c-main)]">N/D</span></div>
-                            <div class="w-full h-1 bg-[var(--border-dim)] mt-2"><div class="h-full bg-[var(--c-main)]" id="ia-conf-bar" style="width:0%"></div></div>
+                            <div class="flex justify-between"><span style="color:var(--gris-moyen);">TENDANCE</span><span id="ia-trend" style="font-weight:700;">N/D</span></div>
+                            <div class="flex justify-between"><span style="color:var(--gris-moyen);">PIC PRÉVU</span><span id="ia-peak" style="font-weight:700;color:var(--warn);">N/D</span></div>
+                            <div class="flex justify-between"><span style="color:var(--gris-moyen);">CONFIANCE</span><span id="ia-conf" style="font-weight:700;color:var(--bleu-france);">N/D</span></div>
+                            <div style="width:100%;height:4px;background:var(--gris-bord);border-radius:2px;margin-top:8px;overflow:hidden;">
+                                <div style="height:100%;background:linear-gradient(90deg,var(--bleu-france),var(--bleu-clair));transition:width 0.4s;border-radius:2px;" id="ia-conf-bar"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="cyber-panel flex-1">
-                        <div class="hdr"><i class="fa-solid fa-bullseye"></i> ACTIONS SUGGEREES</div>
-                        <div class="text-xs text-[var(--text-lo)] mt-2" id="ia-actions">EN ATTENTE D'ANALYSE...</div>
+                    <div class="pro-panel flex-1">
+                        <div class="hdr"><i class="fa-solid fa-bullseye"></i> ACTIONS SUGGÉRÉES</div>
+                        <div class="text-xs" style="color:var(--gris-moyen);margin-top:8px;line-height:1.7;" id="ia-actions">EN ATTENTE D'ANALYSE...</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 4: OPERATIONS -->
+        <!-- TAB 4 : OPÉRATIONS -->
         <div id="tab-ops" class="tab-content">
-            <div class="cyber-panel">
-                <div class="hdr"><i class="fa-solid fa-table-list"></i> REGISTRE COMPLET FLOTTE <span class="ml-auto text-[var(--c-main)]" id="vt-count">0</span></div>
-                <div class="overflow-x-auto" style="max-height:500px;overflow-y:auto;">
-                    <table class="w-full text-xs vt">
-                        <thead class="sticky top-0 bg-[var(--bg-panel)] z-10">
-                            <tr class="text-left text-[var(--text-lo)] border-b border-[var(--border-dim)]">
-                                <th class="py-2 px-2">MMSI</th>
-                                <th class="py-2 px-2">NOM</th>
-                                <th class="py-2 px-2">TYPE / CARGO</th>
-                                <th class="py-2 px-2">DESTINATION</th>
-                                <th class="py-2 px-2 text-right">LONG.(M)</th>
-                                <th class="py-2 px-2 text-right">TIRANT(M)</th>
-                                <th class="py-2 px-2 text-right">LAT</th>
-                                <th class="py-2 px-2 text-right">LNG</th>
-                                <th class="py-2 px-2 text-right">VIT(KTS)</th>
-                                <th class="py-2 px-2 text-right">CAP/HDG</th>
-                                <th class="py-2 px-2">ETA</th>
-                                <th class="py-2 px-2">UPDATE</th>
+            <div class="pro-panel">
+                <div class="hdr">
+                    <i class="fa-solid fa-table-list"></i> REGISTRE COMPLET DE LA FLOTTE
+                    <span style="margin-left:auto;color:var(--bleu-france);font-weight:700;font-size:14px;" id="vt-count">0</span>
+                </div>
+                <div class="overflow-x-auto" style="max-height:520px;overflow-y:auto;">
+                    <table class="w-full text-xs vt" style="border-collapse:collapse;">
+                        <thead style="position:sticky;top:0;z-index:10;">
+                            <tr style="text-align:left;">
+                                <th style="padding:10px 8px;">MMSI</th>
+                                <th style="padding:10px 8px;">NOM</th>
+                                <th style="padding:10px 8px;">TYPE / CARGAISON</th>
+                                <th style="padding:10px 8px;">DESTINATION</th>
+                                <th style="padding:10px 8px;text-align:right;">LONG. (M)</th>
+                                <th style="padding:10px 8px;text-align:right;">TIRANT (M)</th>
+                                <th style="padding:10px 8px;text-align:right;">LAT</th>
+                                <th style="padding:10px 8px;text-align:right;">LNG</th>
+                                <th style="padding:10px 8px;text-align:right;">VIT. (KTS)</th>
+                                <th style="padding:10px 8px;text-align:right;">CAP / HDG</th>
+                                <th style="padding:10px 8px;">ETA</th>
+                                <th style="padding:10px 8px;">MAJ</th>
                             </tr>
                         </thead>
-                        <tbody id="vt-body"><tr><td colspan="12" class="text-center text-[var(--text-lo)] py-8">ATTENTE DONNEES AIS...</td></tr></tbody>
+                        <tbody id="vt-body">
+                            <tr><td colspan="12" style="text-align:center;color:var(--gris-moyen);padding:40px 0;">EN ATTENTE DES DONNÉES AIS...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 5: RAPPORTS & EXPORT -->
+        <!-- TAB 5 : RAPPORTS -->
         <div id="tab-reports" class="tab-content">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
-                    <i class="fa-solid fa-file-csv text-3xl text-[var(--c-main)] mb-4"></i>
-                    <div class="text-sm font-bold mb-2">EXPORT CSV</div>
-                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="pro-panel flex flex-col items-center justify-center text-center" style="padding:40px 20px;opacity:0.55;cursor:not-allowed;">
+                    <i class="fa-solid fa-file-csv" style="font-size:32px;color:var(--bleu-france);margin-bottom:16px;"></i>
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">EXPORT CSV</div>
+                    <div style="font-size:11px;color:var(--gris-moyen);">BACKEND V2 REQUIS</div>
                 </div>
-                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
-                    <i class="fa-solid fa-file-excel text-3xl text-[var(--c-green)] mb-4"></i>
-                    <div class="text-sm font-bold mb-2">EXPORT EXCEL</div>
-                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                <div class="pro-panel flex flex-col items-center justify-center text-center" style="padding:40px 20px;opacity:0.55;cursor:not-allowed;">
+                    <i class="fa-solid fa-file-excel" style="font-size:32px;color:var(--ok);margin-bottom:16px;"></i>
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">EXPORT EXCEL</div>
+                    <div style="font-size:11px;color:var(--gris-moyen);">BACKEND V2 REQUIS</div>
                 </div>
-                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
-                    <i class="fa-solid fa-file-pdf text-3xl text-[var(--c-red)] mb-4"></i>
-                    <div class="text-sm font-bold mb-2">RAPPORT PDF</div>
-                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                <div class="pro-panel flex flex-col items-center justify-center text-center" style="padding:40px 20px;opacity:0.55;cursor:not-allowed;">
+                    <i class="fa-solid fa-file-pdf" style="font-size:32px;color:var(--rouge-france);margin-bottom:16px;"></i>
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">RAPPORT PDF</div>
+                    <div style="font-size:11px;color:var(--gris-moyen);">BACKEND V2 REQUIS</div>
                 </div>
-                <div class="cyber-panel flex flex-col items-center justify-center text-center py-10 opacity-50 cursor-not-allowed">
-                    <i class="fa-solid fa-file-code text-3xl text-[var(--c-blue)] mb-4"></i>
-                    <div class="text-sm font-bold mb-2">EXPORT JSON</div>
-                    <div class="text-[10px] text-[var(--text-lo)]">REQUIS BACKEND V2</div>
+                <div class="pro-panel flex flex-col items-center justify-center text-center" style="padding:40px 20px;opacity:0.55;cursor:not-allowed;">
+                    <i class="fa-solid fa-file-code" style="font-size:32px;color:var(--bleu-clair);margin-bottom:16px;"></i>
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">EXPORT JSON</div>
+                    <div style="font-size:11px;color:var(--gris-moyen);">BACKEND V2 REQUIS</div>
                 </div>
             </div>
-            <div class="cyber-panel mt-3">
-                <div class="hdr"><i class="fa-solid fa-circle-info"></i> CONFIGURATION SYSTEME</div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mt-2">
-                    <div><span class="text-[var(--text-lo)]">CLE API AIS:</span><br><span class="text-[var(--c-amber)]">CHARGEE VIA .ENV</span></div>
-                    <div><span class="text-[var(--text-lo)]">BOUNDING BOX:</span><br><span>[-21.5, 54.5] -> [-20.5, 56.5]</span></div>
-                    <div><span class="text-[var(--text-lo)]">HISTORIQUE:</span><br><span>100 POS / NAVIRE</span></div>
-                    <div><span class="text-[var(--text-lo)]">STATUS WS:</span><br><span id="cfg-ws" class="text-[var(--c-red)]">DECONNECTE</span></div>
+            <div class="pro-panel mt-4">
+                <div class="hdr"><i class="fa-solid fa-circle-info"></i> CONFIGURATION SYSTÈME</div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs mt-3">
+                    <div>
+                        <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">CLÉ API AIS</div>
+                        <div style="font-weight:600;color:var(--bleu-france);">CHARGÉE VIA .ENV</div>
+                    </div>
+                    <div>
+                        <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">BOUNDING BOX</div>
+                        <div style="font-weight:600;font-family:'JetBrains Mono',monospace;">[-21.5,54.5] → [-20.5,56.5]</div>
+                    </div>
+                    <div>
+                        <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">HISTORIQUE</div>
+                        <div style="font-weight:600;">100 POSITIONS / NAVIRE</div>
+                    </div>
+                    <div>
+                        <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">STATUT WEBSOCKET</div>
+                        <div style="font-weight:600;" id="cfg-ws"><span style="color:var(--rouge-france);">DÉCONNECTÉ</span></div>
+                    </div>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <footer class="border-t border-[#152030] mt-4 px-4 py-2 text-center text-[10px] text-[var(--text-lo)] tracking-widest">
-        S-WING REUNION PRO v2.0 // ZERO SIMULATION // FLASK + AISSTREAM
+    <footer>
+        S-WING RÉUNION PRO v2.1 · FLASK + AISSTREAM · LE PORT 97420
     </footer>
 
     <script>
         // ========================================================================
-        // CONFIG & STATE
+        // CONFIG & ÉTAT
         // ========================================================================
-        const API = window.location.origin; // Utilise l'origine courante (marche en localhost:5001 ET en prod)
-        let vessels = [],
-            packets = 0,
-            aisLive = false,
-            bootDone = false,
-            kpisData = null;
+        const API = window.location.origin;
+        let vessels = [], packets = 0, aisLive = false, bootDone = false, kpisData = null;
         let chType, chSpd, chPred;
 
-        const AIS_TYPES = { 0: 'Inconnu', 4: 'Passagers', 7: 'Cargo', 10: 'Tanker', 14: 'H/Vitesse', 20: 'Sans prop.', 26: 'Pilotage', 30: 'Remorqueur', 33: 'Dragueur', 36: 'Hydro.', 40: 'Garde', 45: 'Liaison', 50: 'Peche', 90: 'Soutien' };
+        const AIS_TYPES = { 0: 'Inconnu', 4: 'Passagers', 7: 'Cargo', 10: 'Tanker', 14: 'H/Vitesse', 20: 'Sans prop.', 26: 'Pilotage', 30: 'Remorqueur', 33: 'Dragueur', 36: 'Hydro.', 40: 'Garde', 45: 'Liaison', 50: 'Pêche', 90: 'Soutien' };
 
         function resolveAisType(r) {
             if (r === undefined || r === null) return 'Inconnu';
@@ -364,7 +633,7 @@
             if (c >= 7 && c <= 9) return 'Cargo';
             if (c >= 10 && c <= 13) return 'Tanker';
             if (c >= 14 && c <= 19) return 'H/Vitesse';
-            if (c >= 50 && c <= 89) return 'Peche';
+            if (c >= 50 && c <= 89) return 'Pêche';
             if (c >= 90 && c <= 99) return 'Soutien';
             return 'Autre';
         }
@@ -376,7 +645,7 @@
             const c = t === 'warn' ? 'w' : t === 'err' ? 'e' : '';
             b.innerHTML += `<div class="ll"><span class="t">[${tm}]</span> <span class="${c}">${m}</span></div>`;
             b.scrollTop = b.scrollHeight;
-            while (b.children.length > 60) b.removeChild(b.firstChild);
+            while (b.children.length > 80) b.removeChild(b.firstChild);
         }
 
         function switchTab(id, btn) {
@@ -393,19 +662,18 @@
         }
 
         // ========================================================================
-        // CARTE LEAFLET
+        // CARTE
         // ========================================================================
         const map = L.map('map', { center: [-21.115, 55.536], zoom: 10, zoomControl: false, attributionControl: false });
         window.map = map;
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
         L.polygon([
-            [-21.08, 55.50],
-            [-21.08, 55.57],
-            [-21.14, 55.57],
-            [-21.14, 55.50]
-        ], { color: '#00ffc8', weight: 1, fillColor: '#00ffc8', fillOpacity: 0.03, dashArray: '5 5' }).addTo(map);
-        [10, 20, 30].forEach(r => L.circle([-21.115, 55.536], { radius: r * 1852, color: '#00ffc8', weight: 0.5, fillColor: 'transparent', dashArray: '2 4', opacity: 0.2 }).addTo(map));
+            [-21.08, 55.50], [-21.08, 55.57], [-21.14, 55.57], [-21.14, 55.50]
+        ], { color: '#0055A4', weight: 2, fillColor: '#0055A4', fillOpacity: 0.05, dashArray: '6 6' }).addTo(map);
+        [10, 20, 30].forEach(r => L.circle([-21.115, 55.536], {
+            radius: r * 1852, color: '#2E7DD1', weight: 0.8, fillColor: 'transparent', dashArray: '3 5', opacity: 0.35
+        }).addTo(map));
         let vLayer = L.layerGroup().addTo(map);
 
         function renderMap() {
@@ -415,122 +683,113 @@
                 const s = v.speed || 0;
                 const cls = s < 0.5 ? 'stopped' : (s < 5 ? 'slow' : '');
                 const icon = L.divIcon({
-                    className: '',
-                    html: `<div class="v-mk ${cls}" style="transform:rotate(${v.course || 0}deg)"></div>`,
-                    iconSize: [10, 10],
-                    iconAnchor: [5, 5]
+                    className: '', html: `<div class="v-mk ${cls}"></div>`,
+                    iconSize: [14, 14], iconAnchor: [7, 7]
                 });
                 const m = L.marker([v.lat, v.lng], { icon }).addTo(vLayer);
 
                 m.bindPopup(`
-                    <div style="min-width:320px; max-width:380px; background: var(--bg-panel); color: var(--text-hi); font-family: 'JetBrains Mono', monospace; padding: 4px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-dim); padding-bottom:8px; margin-bottom:8px;">
-                            <div style="color:var(--c-main);font-weight:bold;font-size:14px;letter-spacing:0.5px;">${v.name || 'N/A'}</div>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <div style="width:8px; height:8px; border-radius:50%; background:${s < 0.5 ? 'var(--c-red)' : s < 5 ? 'var(--c-amber)' : 'var(--c-main)'};"></div>
-                                <span style="font-size:9px; color:var(--text-lo);">${s < 0.5 ? 'A QUAI' : s < 5 ? 'LENT' : 'EN ROUTE'}</span>
+                    <div style="min-width:320px;max-width:380px;font-family:'Inter',sans-serif;color:#1A2942;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E2E8F0;padding-bottom:10px;margin-bottom:10px;">
+                            <div style="color:#0055A4;font-weight:800;font-size:15px;letter-spacing:0.3px;">${v.name || 'N/A'}</div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="width:8px;height:8px;border-radius:50%;background:${s < 0.5 ? '#EF4135' : s < 5 ? '#F59E0B' : '#10B981'};"></div>
+                                <span style="font-size:10px;color:#64748B;font-weight:600;">${s < 0.5 ? 'À QUAI' : s < 5 ? 'LENT' : 'EN ROUTE'}</span>
                             </div>
                         </div>
-
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:10px; line-height:1.8; color:var(--text-hi);">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:11px;line-height:1.9;">
                             <div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">MMSI</span>
-                                    <span style="font-weight:500;">${v.id || 'N/A'}</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">TYPE</span>
-                                    <span style="font-weight:500; color:var(--c-blue);">${resolveAisType(v.cargo)}</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">PAVILLON</span>
-                                    <span style="font-weight:500;">${v.flag || 'N/A'}</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">LONGUEUR</span>
-                                    <span style="font-weight:500;">${v.length || 'N/A'} m</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">TIRANT D'EAU</span>
-                                    <span style="font-weight:500;">${v.draft || 'N/A'} m</span>
-                                </div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">MMSI</span><span style="font-weight:600;">${v.id || 'N/A'}</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">TYPE</span><span style="font-weight:600;color:#2E7DD1;">${resolveAisType(v.cargo)}</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">PAVILLON</span><span style="font-weight:600;">${v.flag || 'N/A'}</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">LONGUEUR</span><span style="font-weight:600;">${v.length || 'N/A'} m</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">TIRANT</span><span style="font-weight:600;">${v.draft || 'N/A'} m</span></div>
                             </div>
-
                             <div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">VITESSE</span>
-                                    <span style="font-weight:bold; color:${s < 0.5 ? 'var(--c-red)' : s < 5 ? 'var(--c-amber)' : 'var(--c-main)'};">${s.toFixed(1)} kts</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">CAP</span>
-                                    <span style="font-weight:500;">${v.course || 0}°</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">CAP VRAI</span>
-                                    <span style="font-weight:500;">${v.heading || 0}°</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">LATITUDE</span>
-                                    <span style="font-weight:500;">${(v.lat || 0).toFixed(5)}°</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
-                                    <span style="color:var(--text-lo);">LONGITUDE</span>
-                                    <span style="font-weight:500;">${(v.lng || 0).toFixed(5)}°</span>
-                                </div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">VITESSE</span><span style="font-weight:700;color:${s < 0.5 ? '#EF4135' : s < 5 ? '#F59E0B' : '#0055A4'};">${s.toFixed(1)} kts</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">CAP</span><span style="font-weight:600;">${v.course || 0}°</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">CAP VRAI</span><span style="font-weight:600;">${v.heading || 0}°</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">LAT</span><span style="font-weight:600;">${(v.lat || 0).toFixed(5)}°</span></div>
+                                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #F1F5F9;padding:3px 0;"><span style="color:#64748B;">LNG</span><span style="font-weight:600;">${(v.lng || 0).toFixed(5)}°</span></div>
                             </div>
                         </div>
-
-                        <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border-dim);">
-                            <div style="display:flex; justify-content:space-between; font-size:10px;">
-                                <div>
-                                    <span style="color:var(--text-lo);">DESTINATION</span><br>
-                                    <span style="color:var(--c-amber); font-weight:bold; font-size:11px;">${v.destination || 'N/D'}</span>
-                                </div>
-                                <div style="text-align:right;">
-                                    <span style="color:var(--text-lo);">ETA</span><br>
-                                    <span style="color:var(--c-amber); font-weight:bold; font-size:11px;">${v.eta || 'N/D'}</span>
-                                </div>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #E2E8F0;">
+                            <div style="display:flex;justify-content:space-between;font-size:11px;">
+                                <div><span style="color:#64748B;font-size:10px;">DESTINATION</span><br><span style="color:#0055A4;font-weight:700;font-size:12px;">${v.destination || 'N/D'}</span></div>
+                                <div style="text-align:right;"><span style="color:#64748B;font-size:10px;">ETA</span><br><span style="color:#0055A4;font-weight:700;font-size:12px;">${v.eta || 'N/D'}</span></div>
                             </div>
                         </div>
-
-                        <div style="margin-top:6px; text-align:right; font-size:8px; color:var(--text-lo); border-top:1px solid rgba(21,48,48,0.3); padding-top:4px;">
-                            DERNIERE MISE A JOUR: ${v.timestamp ? new Date(v.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}
+                        <div style="margin-top:8px;text-align:right;font-size:9px;color:#94A3B8;border-top:1px solid #F1F5F9;padding-top:6px;">
+                            DERNIÈRE MISE À JOUR : ${v.timestamp ? new Date(v.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}
                         </div>
                     </div>
-                `, { maxWidth: 400, className: 'custom-popup' });
+                `, { maxWidth: 400 });
             });
-            document.getElementById('radar-ct').textContent = `${vessels.length} TARGETS`;
+            document.getElementById('radar-ct').textContent = `${vessels.length} CIBLES`;
         }
 
         // ========================================================================
-        // GRAPHIQUES CHART.JS
+        // GRAPHIQUES
         // ========================================================================
-        Chart.defaults.color = '#4a6a70';
-        Chart.defaults.borderColor = '#152030';
-        Chart.defaults.font.family = "'JetBrains Mono',monospace";
+        Chart.defaults.color = '#64748B';
+        Chart.defaults.borderColor = '#E2E8F0';
+        Chart.defaults.font.family = "'Inter',sans-serif";
+        Chart.defaults.font.size = 11;
 
         function initCharts() {
             chType = new Chart(document.getElementById('ch-type'), {
                 type: 'doughnut',
-                data: { labels: [], datasets: [{ data: [], backgroundColor: '#00ffc822', borderColor: '#00ffc8', borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 8, font: { size: 9 } } } } }
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: '#FFFFFF', borderWidth: 2 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11, weight: '500' } } }
+                    }
+                }
             });
             chSpd = new Chart(document.getElementById('ch-spd'), {
                 type: 'bar',
-                data: { labels: ['0', '0-3', '3-6', '6-9', '9-12', '12-15', '15+'], datasets: [{ data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#00ffc822', borderColor: '#00ffc8', borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { grid: { color: '#152030' }, beginAtZero: true } }, plugins: { legend: { display: false } } }
+                data: {
+                    labels: ['0', '0-3', '3-6', '6-9', '9-12', '12-15', '15+'],
+                    datasets: [{
+                        data: [0,0,0,0,0,0,0],
+                        backgroundColor: 'rgba(0,85,164,0.85)',
+                        borderColor: '#0055A4',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { grid: { display: false } }, y: { grid: { color: '#F1F5F9' }, beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
             });
             chPred = new Chart(document.getElementById('ch-pred'), {
                 type: 'line',
-                data: { labels: [], datasets: [{ label: 'Prediction Trafic', data: [], borderColor: '#00ffc8', backgroundColor: 'rgba(0,255,200,0.1)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#00ffc8' }, { label: 'Confiance (%)', data: [], borderColor: '#ffb800', borderDash: [5, 5], tension: 0.4, pointRadius: 0, yAxisID: 'y1' }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { grid: { color: '#152030' }, beginAtZero: true, title: { display: true, text: 'Navires', font: { size: 10 } } }, y1: { position: 'right', grid: { drawOnChartArea: false }, min: 0, max: 100, title: { display: true, text: 'Confiance %', font: { size: 10 } } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Trafic prévu', data: [], borderColor: '#0055A4', backgroundColor: 'rgba(0,85,164,0.08)', fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#0055A4', borderWidth: 2 },
+                        { label: 'Confiance (%)', data: [], borderColor: '#EF4135', borderDash: [6,4], tension: 0.4, pointRadius: 0, yAxisID: 'y1', borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: '#F1F5F9' }, beginAtZero: true, title: { display: true, text: 'Navires', font: { size: 11, weight: '600' }, color: '#0055A4' } },
+                        y1: { position: 'right', grid: { drawOnChartArea: false }, min: 0, max: 100, title: { display: true, text: 'Confiance %', font: { size: 11, weight: '600' }, color: '#EF4135' } }
+                    },
+                    plugins: { legend: { labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } }
+                }
             });
         }
         initCharts();
 
         function updateAnalytics() {
             const cats = {};
-            const bins = [0, 0, 0, 0, 0, 0, 0];
+            const bins = [0,0,0,0,0,0,0];
             vessels.forEach(v => {
                 const c = resolveAisCat(v.cargo);
                 cats[c] = (cats[c] || 0) + 1;
@@ -543,19 +802,18 @@
                 else if (s < 15) bins[5]++;
                 else bins[6]++;
             });
-            const pal = ['#00ffc8', '#ffb800', '#00aaff', '#ff003c', '#a855f7', '#ec4899', '#84cc16'];
+            const pal = ['#0055A4', '#EF4135', '#2E7DD1', '#F59E0B', '#10B981', '#7C3AED', '#0EA5E9'];
             const keys = Object.keys(cats);
             chType.data.labels = keys;
             chType.data.datasets[0].data = Object.values(cats);
-            chType.data.datasets[0].backgroundColor = keys.map((_, i) => pal[i % pal.length] + '33');
-            chType.data.datasets[0].borderColor = keys.map((_, i) => pal[i % pal.length]);
+            chType.data.datasets[0].backgroundColor = keys.map((_, i) => pal[i % pal.length]);
             chType.update('none');
             chSpd.data.datasets[0].data = bins;
             chSpd.update('none');
         }
 
         // ========================================================================
-        // RENDU DES 8 KPIs
+        // KPIs
         // ========================================================================
         function renderKPIs(d) {
             if (!d) return;
@@ -566,74 +824,71 @@
                 el.classList.remove('nd');
                 if (color) el.style.color = color;
             };
-
-            set('k-cont', (d.conteneurs || 0).toLocaleString('fr-FR'), 'var(--c-main)');
-            set('k-ocp', (d.occupation || 0) + '%', d.occupation > 85 ? 'var(--c-red)' : d.occupation > 60 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-sat', (d.satisfaction || 0) + '%', d.satisfaction < 75 ? 'var(--c-red)' : d.satisfaction < 85 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-ret', (d.retards || 0) + 'h', d.retards > 3 ? 'var(--c-red)' : d.retards > 2 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-eff', (d.efficacite || 0) + '%', d.efficacite < 75 ? 'var(--c-red)' : d.efficacite < 85 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-rot', (d.rotation || 0) + 'j', 'var(--c-blue)');
-            set('k-cost', (d.cout_teu || 0) + '€', 'var(--c-amber)');
-            set('k-co2', (d.co2 || 0) + 't', d.co2 > 15 ? 'var(--c-red)' : d.co2 > 8 ? 'var(--c-amber)' : 'var(--c-main)');
-
-            if (d.metadata) log(`KPIs: ${d.metadata.navires_quai} quais / ${d.metadata.navires_mouvement} en mvmt`);
+            set('k-cont', (d.conteneurs || 0).toLocaleString('fr-FR'), 'var(--bleu-france)');
+            set('k-ocp', (d.occupation || 0) + '%', d.occupation > 85 ? 'var(--rouge-france)' : d.occupation > 60 ? 'var(--warn)' : 'var(--bleu-france)');
+            set('k-sat', (d.satisfaction || 0) + '%', d.satisfaction < 75 ? 'var(--rouge-france)' : d.satisfaction < 85 ? 'var(--warn)' : 'var(--bleu-france)');
+            set('k-ret', (d.retards || 0) + 'h', d.retards > 3 ? 'var(--rouge-france)' : d.retards > 2 ? 'var(--warn)' : 'var(--bleu-france)');
+            set('k-eff', (d.efficacite || 0) + '%', d.efficacite < 75 ? 'var(--rouge-france)' : d.efficacite < 85 ? 'var(--warn)' : 'var(--bleu-france)');
+            set('k-rot', (d.rotation || 0) + 'j', 'var(--bleu-clair)');
+            set('k-cost', (d.cout_teu || 0) + '€', 'var(--warn)');
+            set('k-co2', (d.co2 || 0) + 't', d.co2 > 15 ? 'var(--rouge-france)' : d.co2 > 8 ? 'var(--warn)' : 'var(--bleu-france)');
+            if (d.metadata) log(`KPIs actualisés : ${d.metadata.navires_quai} à quai / ${d.metadata.navires_mouvement} en mouvement`);
         }
 
         // ========================================================================
-        // TABLEAU OPERATIONNEL
+        // TABLE
         // ========================================================================
         function updateTable() {
             const tbody = document.getElementById('vt-body');
             document.getElementById('vt-count').textContent = vessels.length;
             if (!vessels.length) {
-                tbody.innerHTML = '<tr><td colspan="12" class="text-center text-[var(--text-lo)] py-8">AUCUN NAVIRE DETECTE</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--gris-moyen);padding:40px 0;">AUCUN NAVIRE DÉTECTÉ</td></tr>';
                 return;
             }
             tbody.innerHTML = [...vessels].sort((a, b) => (b.speed || 0) - (a.speed || 0)).map(v => {
                 const s = v.speed || 0;
-                const sc = s < 0.5 ? 'var(--c-red)' : (s < 5 ? 'var(--c-amber)' : 'var(--text-hi)');
+                const sc = s < 0.5 ? 'var(--rouge-france)' : (s < 5 ? 'var(--warn)' : 'var(--gris-texte)');
                 const tm = v.timestamp ? new Date(v.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
                 return `<tr>
-                    <td class="py-2 px-2 text-[var(--text-lo)]">${v.id}</td>
-                    <td class="py-2 px-2 font-bold text-[var(--text-hi)]" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.name || '?'}</td>
-                    <td class="py-2 px-2 text-[var(--text-lo)]">${resolveAisType(v.cargo)}</td>
-                    <td class="py-2 px-2 text-[var(--c-amber)]" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.destination || 'N/D'}</td>
-                    <td class="py-2 px-2 text-right">${v.length || 'N/D'}</td>
-                    <td class="py-2 px-2 text-right">${v.draft || 'N/D'}</td>
-                    <td class="py-2 px-2 text-right">${v.lat || 0}</td>
-                    <td class="py-2 px-2 text-right">${v.lng || 0}</td>
-                    <td class="py-2 px-2 text-right font-bold" style="color:${sc}">${s.toFixed(1)}</td>
-                    <td class="py-2 px-2 text-right">${v.course || 0}° / ${v.heading || 0}°</td>
-                    <td class="py-2 px-2 text-[var(--text-lo)]">${v.eta || 'N/D'}</td>
-                    <td class="py-2 px-2 text-[var(--text-lo)]">${tm}</td>
+                    <td style="padding:10px 8px;color:var(--gris-moyen);font-family:'JetBrains Mono',monospace;font-size:11px;">${v.id}</td>
+                    <td style="padding:10px 8px;font-weight:700;color:var(--gris-texte);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.name || '?'}</td>
+                    <td style="padding:10px 8px;color:var(--gris-moyen);">${resolveAisType(v.cargo)}</td>
+                    <td style="padding:10px 8px;color:var(--bleu-france);font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.destination || 'N/D'}</td>
+                    <td style="padding:10px 8px;text-align:right;">${v.length || 'N/D'}</td>
+                    <td style="padding:10px 8px;text-align:right;">${v.draft || 'N/D'}</td>
+                    <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;">${v.lat || 0}</td>
+                    <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;">${v.lng || 0}</td>
+                    <td style="padding:10px 8px;text-align:right;font-weight:700;color:${sc};">${s.toFixed(1)}</td>
+                    <td style="padding:10px 8px;text-align:right;">${v.course || 0}° / ${v.heading || 0}°</td>
+                    <td style="padding:10px 8px;color:var(--gris-moyen);">${v.eta || 'N/D'}</td>
+                    <td style="padding:10px 8px;color:var(--gris-moyen);font-size:11px;">${tm}</td>
                 </tr>`;
             }).join('');
         }
 
         // ========================================================================
-        // ALERTES DYNAMIQUES
+        // ALERTES
         // ========================================================================
         function updateAlerts(weather, stats) {
             const ac = document.getElementById('alerts-container');
             if (!ac || !stats) return;
-            let h = `<div class="alert-bar ${aisLive ? 'alert-ok' : 'alert-warn'}"><i class="fa-solid fa-server"></i> <span>SYSTEME: ${aisLive ? 'AIS STREAM CONNECTE' : 'AIS STREAM HORS LIGNE'}</span></div>`;
-            h += `<div class="alert-bar ${stats.total > 10 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-ship"></i> <span>TRAFFIC: ${stats.total} NAVIRES ${stats.total > 10 ? '(ELEVE)' : ''}</span></div>`;
-
+            let h = `<div class="alert-bar ${aisLive ? 'alert-ok' : 'alert-warn'}"><i class="fa-solid fa-server"></i> <span>SYSTÈME : ${aisLive ? 'FLUX AIS CONNECTÉ' : 'FLUX AIS HORS LIGNE'}</span></div>`;
+            h += `<div class="alert-bar ${stats.total > 10 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-ship"></i> <span>TRAFIC : ${stats.total} NAVIRES${stats.total > 10 ? ' (ÉLEVÉ)' : ''}</span></div>`;
             const ocp = kpisData ? kpisData.occupation : 0;
             if (ocp > 85) {
-                h += `<div class="alert-bar alert-err"><i class="fa-solid fa-warehouse"></i> <span>QUAIS: SATURATION ${ocp}%</span></div>`;
+                h += `<div class="alert-bar alert-err"><i class="fa-solid fa-warehouse"></i> <span>QUAIS : SATURATION ${ocp}%</span></div>`;
             } else {
                 const w = weather?.hourly?.wave_height;
                 if (w && w.length) {
                     const v = w[w.length - 1];
-                    h += `<div class="alert-bar ${v > 2.5 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-cloud-sun"></i> <span>METEO: HOULE ${v.toFixed(1)}M ${v > 2.5 ? '(DEFAVORABLE)' : '(FAVORABLE)'}</span></div>`;
-                } else h += `<div class="alert-bar alert-warn"><i class="fa-solid fa-cloud-sun"></i> <span>METEO: INDISPONIBLE</span></div>`;
+                    h += `<div class="alert-bar ${v > 2.5 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-cloud-sun"></i> <span>MÉTÉO : HOULE ${v.toFixed(1)} M ${v > 2.5 ? '(DÉFAVORABLE)' : '(FAVORABLE)'}</span></div>`;
+                } else h += `<div class="alert-bar alert-warn"><i class="fa-solid fa-cloud-sun"></i> <span>MÉTÉO : INDISPONIBLE</span></div>`;
             }
             ac.innerHTML = h;
         }
 
         // ========================================================================
-        // REQUETES API
+        // API
         // ========================================================================
         async function apiGet(e) {
             const r = await fetch(`${API}${e}`, { signal: AbortSignal.timeout(4000) });
@@ -641,8 +896,7 @@
             return r.json();
         }
 
-        let failCount = 0,
-            firstSync = false;
+        let failCount = 0, firstSync = false;
 
         async function syncVessels() {
             try {
@@ -651,7 +905,7 @@
                 failCount = 0;
                 if (!firstSync) {
                     firstSync = true;
-                    log(`SYNC INIT: ${vessels.length} NAVIRES`);
+                    log(`Synchronisation initiale : ${vessels.length} navires`);
                     const b = document.getElementById('boot-screen');
                     b.classList.add('hide');
                     setTimeout(() => b.style.display = 'none', 600);
@@ -662,7 +916,7 @@
                 updateAnalytics();
             } catch (e) {
                 failCount++;
-                log(`ERR VESSELS: ${e.message}`, 'err');
+                log(`Erreur navires : ${e.message}`, 'err');
                 if (failCount >= 3 && !bootDone) {
                     document.getElementById('err-detail').textContent = e.message;
                     document.getElementById('error-screen').classList.add('active');
@@ -686,10 +940,8 @@
             try {
                 const d = await apiGet('/api/weather');
                 updateWeather(d);
-                log('METEO UPDATE');
-            } catch (e) {
-                log(`ERR METEO: ${e.message}`, 'warn');
-            }
+                log('Météo actualisée');
+            } catch (e) { log(`Erreur météo : ${e.message}`, 'warn'); }
         }
 
         async function syncPredictions() {
@@ -703,22 +955,20 @@
                 chPred.update('none');
 
                 document.getElementById('ia-trend').textContent = `${d.trend > 0 ? '+' : ''}${d.trend.toFixed(1)}%`;
-                document.getElementById('ia-trend').style.color = d.trend > 0 ? 'var(--c-main)' : 'var(--c-red)';
+                document.getElementById('ia-trend').style.color = d.trend > 0 ? 'var(--ok)' : 'var(--rouge-france)';
                 document.getElementById('ia-peak').textContent = d.peak ? d.peak.toFixed(1) : 'N/D';
                 document.getElementById('ia-conf').textContent = d.avg_confidence ? `${(d.avg_confidence * 100).toFixed(0)}%` : 'N/D';
                 document.getElementById('ia-conf-bar').style.width = d.avg_confidence ? `${d.avg_confidence * 100}%` : '0%';
 
-                let act = '<div class="space-y-2">';
-                if (d.trend > 5) act += '<div class="text-[var(--c-amber)]"><i class="fa-solid fa-triangle-exclamation mr-2"></i>HAUSSE PREVUE. RENFORCER EQUIPAGES.</div>';
-                else if (d.trend < -5) act += '<div class="text-[var(--c-blue)]"><i class="fa-solid fa-arrow-down mr-2"></i>BAISSE PREVUE. OPTIMISER RESSOURCES.</div>';
-                else act += '<div class="text-[var(--c-main)]"><i class="fa-solid fa-check mr-2"></i>TRAFFIC STABLE. OPERATIONS NORMALES.</div>';
-                if (d.avg_confidence < 0.7) act += '<div class="text-[var(--c-red)]"><i class="fa-solid fa-exclamation-circle mr-2"></i>FAIBLE CONFIANCE MODELE.</div>';
+                let act = '<div style="display:flex;flex-direction:column;gap:8px;">';
+                if (d.trend > 5) act += '<div style="color:var(--warn);"><i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;"></i>Hausse prévue — renforcer les équipages.</div>';
+                else if (d.trend < -5) act += '<div style="color:var(--bleu-clair);"><i class="fa-solid fa-arrow-down" style="margin-right:8px;"></i>Baisse prévue — optimiser les ressources.</div>';
+                else act += '<div style="color:var(--ok);"><i class="fa-solid fa-check" style="margin-right:8px;"></i>Trafic stable — opérations normales.</div>';
+                if (d.avg_confidence < 0.7) act += '<div style="color:var(--rouge-france);"><i class="fa-solid fa-exclamation-circle" style="margin-right:8px;"></i>Faible confiance du modèle.</div>';
                 act += '</div>';
                 document.getElementById('ia-actions').innerHTML = act;
-                log('PREDICTIONS UPDATE');
-            } catch (e) {
-                log(`ERR PRED: ${e.message}`, 'warn');
-            }
+                log('Prédictions actualisées');
+            } catch (e) { log(`Erreur prédictions : ${e.message}`, 'warn'); }
         }
 
         async function syncKPIs() {
@@ -726,64 +976,63 @@
                 const d = await apiGet('/api/kpis');
                 kpisData = d;
                 renderKPIs(d);
-            } catch (e) {
-                log(`ERR KPIs: ${e.message}`, 'warn');
-            }
+            } catch (e) { log(`Erreur KPIs : ${e.message}`, 'warn'); }
         }
 
         function updateWeather(d) {
             if (!d || !d.hourly) return;
             const h = d.hourly;
             const i = Math.max(0, (h.wave_height || []).length - 1);
-            const w = h.wave_height ? h.wave_height[i] : null,
-                pe = h.wave_period ? h.wave_period[i] : null,
-                di = h.wave_direction ? h.wave_direction[i] : null,
-                sw = h.swell_wave_height ? h.swell_wave_height[i] : null;
+            const w = h.wave_height ? h.wave_height[i] : null;
+            const pe = h.wave_period ? h.wave_period[i] : null;
+            const di = h.wave_direction ? h.wave_direction[i] : null;
+            const sw = h.swell_wave_height ? h.swell_wave_height[i] : null;
             if (w == null) return;
             document.getElementById('weather-panel').innerHTML = `
-                <div class="flex justify-between"><span class="text-[var(--text-lo)]">HOULE</span><span class="text-[var(--text-hi)]">${w.toFixed(1)} m</span></div><div class="w-full h-1 bg-[var(--border-dim)]"><div class="h-full bg-[var(--c-blue)]" style="width:${Math.min(100, (w / 4) * 100)}%"></div></div>
-                <div class="flex justify-between"><span class="text-[var(--text-lo)]">PERIODE</span><span class="text-[var(--text-hi)]">${pe.toFixed(1)} s</span></div><div class="w-full h-1 bg-[var(--border-dim)]"><div class="h-full bg-[var(--c-main)]" style="width:${Math.min(100, (pe / 15) * 100)}%"></div></div>
-                <div class="flex justify-between"><span class="text-[var(--text-lo)]">DIRECTION</span><span class="text-[var(--text-hi)]">${Math.round(di)}°</span></div>
-                <div class="flex justify-between"><span class="text-[var(--text-lo)]">SWELL</span><span class="text-[var(--text-hi)]">${sw.toFixed(1)} m</span></div><div class="w-full h-1 bg-[var(--border-dim)]"><div class="h-full bg-[var(--c-amber)]" style="width:${Math.min(100, (sw / 3) * 100)}%"></div></div>`;
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--gris-moyen);">HOULE</span><span style="color:var(--gris-texte);font-weight:600;">${w.toFixed(1)} m</span></div>
+                <div style="width:100%;height:4px;background:var(--gris-bord);border-radius:2px;overflow:hidden;"><div style="height:100%;background:var(--bleu-clair);width:${Math.min(100, (w / 4) * 100)}%;border-radius:2px;"></div></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--gris-moyen);">PÉRIODE</span><span style="color:var(--gris-texte);font-weight:600;">${pe.toFixed(1)} s</span></div>
+                <div style="width:100%;height:4px;background:var(--gris-bord);border-radius:2px;overflow:hidden;"><div style="height:100%;background:var(--bleu-france);width:${Math.min(100, (pe / 15) * 100)}%;border-radius:2px;"></div></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--gris-moyen);">DIRECTION</span><span style="color:var(--gris-texte);font-weight:600;">${Math.round(di)}°</span></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--gris-moyen);">SWELL</span><span style="color:var(--gris-texte);font-weight:600;">${sw.toFixed(1)} m</span></div>
+                <div style="width:100%;height:4px;background:var(--gris-bord);border-radius:2px;overflow:hidden;"><div style="height:100%;background:var(--warn);width:${Math.min(100, (sw / 3) * 100)}%;border-radius:2px;"></div></div>`;
         }
 
         function setStatus(l) {
             aisLive = l;
-            const d = document.getElementById('status-dot'),
-                t = document.getElementById('status-text'),
-                w = document.getElementById('cfg-ws');
+            const d = document.getElementById('status-dot');
+            const t = document.getElementById('status-text');
+            const w = document.getElementById('cfg-ws');
             if (!d) return;
             if (l) {
-                d.className = 'w-2 h-2 rounded-full bg-[var(--c-main)] blink';
+                d.className = 'status-dot live blink';
                 t.textContent = 'AIS LIVE';
-                t.style.color = 'var(--c-main)';
-                if (w) { w.textContent = 'CONNECTE'; w.style.color = 'var(--c-main)'; }
+                t.style.color = 'var(--ok)';
+                if (w) w.innerHTML = '<span style="color:var(--ok);font-weight:600;">CONNECTÉ</span>';
             } else {
-                d.className = 'w-2 h-2 rounded-full bg-[var(--c-amber)] blink';
+                d.className = 'status-dot offline blink';
                 t.textContent = 'AIS OFFLINE';
-                t.style.color = 'var(--c-amber)';
-                if (w) { w.textContent = 'DECONNECTE'; w.style.color = 'var(--c-red)'; }
+                t.style.color = 'var(--warn)';
+                if (w) w.innerHTML = '<span style="color:var(--rouge-france);font-weight:600;">DÉCONNECTÉ</span>';
             }
         }
 
         // ========================================================================
-        // SEQUENCE DE DEMARRAGE & BOUCLES
+        // DÉMARRAGE
         // ========================================================================
         async function boot() {
             const s = document.getElementById('boot-status');
-            s.textContent = 'CONNEXION SERVEUR FLASK...';
+            s.textContent = 'CONNEXION AU SERVEUR FLASK...';
             await new Promise(r => setTimeout(r, 800));
 
-            s.textContent = 'TEST ENDPOINTS...';
+            s.textContent = 'VÉRIFICATION DES POINTS D\'ACCÈS...';
             try {
                 await apiGet('/api/stats');
-                log('SERVEUR FLASK DETECTE');
-            } catch (e) {
-                log('FLASK NON DETECTE', 'err');
-            }
+                log('Serveur Flask détecté');
+            } catch (e) { log('Serveur Flask non détecté', 'err'); }
 
             await new Promise(r => setTimeout(r, 600));
-            s.textContent = 'SYNC AIS + KPIs...';
+            s.textContent = 'SYNCHRONISATION AIS + KPIs...';
 
             await syncVessels();
             await syncStats();
@@ -804,7 +1053,7 @@
             setInterval(() => {
                 if (vessels.length && aisLive) {
                     const v = vessels[Math.floor(Math.random() * vessels.length)];
-                    log(`RX ${v.id} // ${v.name || '?'} SPD:${(v.speed || 0).toFixed(1)}`);
+                    log(`Réception ${v.id} // ${v.name || '?'} — ${(v.speed || 0).toFixed(1)} kts`);
                 }
             }, 4000);
         }
