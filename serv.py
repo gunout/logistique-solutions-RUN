@@ -21,6 +21,13 @@ import time
 import math
 from collections import deque
 import random
+from dotenv import load_dotenv
+
+# ============================================================
+# CHARGEMENT DES VARIABLES D'ENVIRONNEMENT
+# ============================================================
+
+load_dotenv()
 
 # ============================================================
 # CONFIGURATION
@@ -32,7 +39,16 @@ CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 PORT = 5001
-AIS_API_KEY = os.getenv('AIS_API_KEY', '6542112575fd3e48c752ae4bfbc7d5d56b5aba3c')
+AIS_API_KEY = os.getenv('AIS_API_KEY')
+
+if not AIS_API_KEY:
+    raise RuntimeError(
+        "❌ AIS_API_KEY manquante.\n"
+        "Créez un fichier .env à la racine du projet avec :\n"
+        "    AIS_API_KEY=votre_cle_aisstream\n"
+        "Voir .env.example pour un modèle."
+    )
+
 BOUNDING_BOX = [[-21.5, 54.5], [-20.5, 56.5]]
 
 # ============================================================
@@ -128,7 +144,8 @@ def get_live_context():
             context['wind_speed_kts'] = (c.get('wind_speed_10m', 0) or 0) * 1.943
             context['wave_height_m'] = c.get('wave_height', 0) or 0
             context['swell_m'] = c.get('swell_wave_height', 0) or 0
-    except Exception as e: print(f"Erreur Meteo: {e}")
+    except Exception as e:
+        print(f"Erreur Meteo: {e}")
 
     try:
         r = requests.get("https://api.sunrise-sunset.org/json", params={'lat': -21.115, 'lng': 55.536, 'formatted': 0}, timeout=5)
@@ -139,12 +156,15 @@ def get_live_context():
             sunset = datetime.fromisoformat(results.get('sunset', '').replace('Z', '+00:00')).replace(tzinfo=None)
             reunion_now = now.hour + 4
             context['is_night'] = not (sunrise.hour + 4 <= reunion_now <= sunset.hour + 4)
-    except: pass
+    except Exception as e:
+        print(f"Erreur Sunrise/Sunset: {e}")
 
     try:
         r = requests.get("https://api.frankfurter.app/latest?from=EUR&to=USD", timeout=5)
-        if r.status_code == 200: context['eur_usd'] = r.json().get('rates', {}).get('USD', 1.08)
-    except: pass
+        if r.status_code == 200:
+            context['eur_usd'] = r.json().get('rates', {}).get('USD', 1.08)
+    except Exception as e:
+        print(f"Erreur FX: {e}")
 
     external_data_cache['data'] = context
     external_data_cache['last_fetch'] = time.time()
@@ -157,7 +177,16 @@ def get_live_context():
 def compute_kpis(vessels_list, context):
     total = len(vessels_list)
     if total == 0:
-        return {'conteneurs': 0, 'occupation': 0.0, 'satisfaction': 0.0, 'retards': 0.0, 'efficacite': 0.0, 'rotation': 0.0, 'cout_teu': 0.0, 'co2': 0.0, 'metadata': {'navires_total': 0, 'navires_quai': 0, 'navires_mouvement': 0, 'navires_cargo': 0, 'sources': 'N/A'}}
+        return {
+            'conteneurs': 0, 'occupation': 0.0, 'satisfaction': 0.0,
+            'retards': 0.0, 'efficacite': 0.0, 'rotation': 0.0,
+            'cout_teu': 0.0, 'co2': 0.0,
+            'metadata': {
+                'navires_total': 0, 'navires_quai': 0,
+                'navires_mouvement': 0, 'navires_cargo': 0,
+                'sources': 'N/A'
+            }
+        }
 
     at_quay = []
     at_mouillage = []
@@ -166,7 +195,8 @@ def compute_kpis(vessels_list, context):
 
     for v in vessels_list:
         lat, lng, spd = v.get('lat', 0), v.get('lng', 0), v.get('speed') or 0
-        if str(v.get('cargo', '')).lower() in ['cargo', 'conteneurs']: cargo_vessels.append(v)
+        if str(v.get('cargo', '')).lower() in ['cargo', 'conteneurs']:
+            cargo_vessels.append(v)
 
         if spd < 0.5:
             if point_in_polygon(lat, lng, QUAI_POLYGON):
@@ -184,33 +214,43 @@ def compute_kpis(vessels_list, context):
     teu = 0
     for v in at_quay + cargo_vessels:
         length = v.get('length') or 0
-        if length > 50: teu += (length / 20) * 180 * 0.75
+        if length > 50:
+            teu += (length / 20) * 180 * 0.75
     conteneurs = int(teu)
 
     occupation = round((len(at_quay) / 6) * 100, 1)
 
     meteo_penalty = 0
-    if wind > 20: meteo_penalty += (wind - 20) * 0.2
-    if waves > 2.0: meteo_penalty += (waves - 2.0) * 1.5
+    if wind > 20:
+        meteo_penalty += (wind - 20) * 0.2
+    if waves > 2.0:
+        meteo_penalty += (waves - 2.0) * 1.5
     congestion_penalty = (len(at_mouillage) * 1.5)
     retards = round(1.5 + congestion_penalty + meteo_penalty, 1)
 
     engorgement = max(0, (len(at_quay) - 6) * 5) if len(at_quay) > 6 else 0
     meteo_eff_penalty = 0
-    if wind > 25: meteo_eff_penalty += 5
-    if is_night: meteo_eff_penalty += 3
+    if wind > 25:
+        meteo_eff_penalty += 5
+    if is_night:
+        meteo_eff_penalty += 3
     efficacite = round(max(60.0, min(99.5, 95.0 - engorgement - meteo_eff_penalty)), 1)
 
     rotation = 3.2
     if len(quai_events) >= 4:
         arrivals = {e['mmsi']: e['time'] for e in quai_events if e['type'] == 'arrivee'}
         departs = {e['mmsi']: e['time'] for e in quai_events if e['type'] == 'depart'}
-        rots = [(departs[m] - arrivals[m]).total_seconds() / 3600 for m in arrivals if m in departs and (departs[m] - arrivals[m]).total_seconds() > 0]
-        if rots: rotation = round(sum(rots) / len(rots) / 24, 1)
+        rots = [
+            (departs[m] - arrivals[m]).total_seconds() / 3600
+            for m in arrivals if m in departs and (departs[m] - arrivals[m]).total_seconds() > 0
+        ]
+        if rots:
+            rotation = round(sum(rots) / len(rots) / 24, 1)
 
     base_cost_usd = 150.00
     variable_cost_usd = 42.00
-    cout_teu = round(((base_cost_usd + variable_cost_usd) / eur_usd), 2) if conteneurs == 0 else round(((85000 / conteneurs) + variable_cost_usd) / eur_usd, 2)
+    cout_teu = round(((base_cost_usd + variable_cost_usd) / eur_usd), 2) if conteneurs == 0 \
+        else round(((85000 / conteneurs) + variable_cost_usd) / eur_usd, 2)
 
     co2_kg = 0.0
     for v in vessels_list:
@@ -221,16 +261,24 @@ def compute_kpis(vessels_list, context):
     co2 = round(co2_kg / 1000, 2)
 
     sat_pen = max(0, (retards - 2.0) * 5) + max(0, (90.0 - efficacite) * 1)
-    if waves > 2.5: sat_pen += 3
+    if waves > 2.5:
+        sat_pen += 3
     satisfaction = round(max(65.0, min(99.5, 98.0 - sat_pen)), 1)
 
     return {
-        'conteneurs': conteneurs, 'occupation': occupation, 'efficacite': efficacite,
-        'rotation': rotation, 'retards': retards, 'cout_teu': cout_teu,
-        'co2': co2, 'satisfaction': satisfaction,
+        'conteneurs': conteneurs,
+        'occupation': occupation,
+        'efficacite': efficacite,
+        'rotation': rotation,
+        'retards': retards,
+        'cout_teu': cout_teu,
+        'co2': co2,
+        'satisfaction': satisfaction,
         'metadata': {
-            'navires_total': total, 'navires_quai': len(at_quay),
-            'navires_mouillage': len(at_mouillage), 'navires_mouvement': len(moving),
+            'navires_total': total,
+            'navires_quai': len(at_quay),
+            'navires_mouillage': len(at_mouillage),
+            'navires_mouvement': len(moving),
             'navires_cargo': len(cargo_vessels),
             'sources': f"Vent:{wind:.1f}kts, Houle:{waves:.1f}m, Nuit:{is_night}, EUR/USD:{eur_usd:.3f}"
         }
@@ -255,9 +303,14 @@ def ais_websocket_thread():
                 if meta and pos:
                     mmsi = str(meta.get('MMSI', ''))
                     with vessel_lock:
-                        was_at_quai = mmsi in vessels and point_in_polygon(vessels[mmsi].get('lat', 0), vessels[mmsi].get('lng', 0), QUAI_POLYGON)
+                        was_at_quai = mmsi in vessels and point_in_polygon(
+                            vessels[mmsi].get('lat', 0),
+                            vessels[mmsi].get('lng', 0),
+                            QUAI_POLYGON
+                        )
 
-                        if mmsi not in vessel_history: vessel_history[mmsi] = deque(maxlen=history_size)
+                        if mmsi not in vessel_history:
+                            vessel_history[mmsi] = deque(maxlen=history_size)
                         vessel_history[mmsi].append(vessels[mmsi].copy() if mmsi in vessels else {})
 
                         new_speed = pos.get('SpeedOverGround', 0)
@@ -265,15 +318,21 @@ def ais_websocket_thread():
                         new_lng = pos.get('Longitude', 0)
 
                         vessels[mmsi] = {
-                            'id': mmsi, 'name': meta.get('ShipName', 'Inconnu'),
+                            'id': mmsi,
+                            'name': meta.get('ShipName', 'Inconnu'),
                             'type': determine_type(meta.get('ShipType', 'Cargo')),
-                            'cargo': meta.get('ShipType', 'Cargo'), 'flag': meta.get('Flag', '--'),
-                            'lat': new_lat, 'lng': new_lng,
-                            'speed': new_speed, 'course': pos.get('CourseOverGround', 0),
+                            'cargo': meta.get('ShipType', 'Cargo'),
+                            'flag': meta.get('Flag', '--'),
+                            'lat': new_lat,
+                            'lng': new_lng,
+                            'speed': new_speed,
+                            'course': pos.get('CourseOverGround', 0),
                             'timestamp': datetime.now().isoformat(),
-                            'length': meta.get('Length', 0), 'draft': meta.get('Draft', 0),
+                            'length': meta.get('Length', 0),
+                            'draft': meta.get('Draft', 0),
                             'destination': meta.get('Destination', 'Inconnu'),
-                            'eta': meta.get('ETA', ''), 'heading': pos.get('TrueHeading', 0),
+                            'eta': meta.get('ETA', ''),
+                            'heading': pos.get('TrueHeading', 0),
                             'history': list(vessel_history.get(mmsi, []))[-10:]
                         }
 
@@ -287,32 +346,49 @@ def ais_websocket_thread():
                             print(f"📦 ARRIVÉE QUAI : {meta.get('ShipName', mmsi)}")
 
                         last_update = datetime.now()
-                        socketio.emit('vessel_update', {'vessels': list(vessels.values()), 'stats': get_stats()})
-        except Exception as e: print(f"Erreur message: {e}")
+                        socketio.emit('vessel_update', {
+                            'vessels': list(vessels.values()),
+                            'stats': get_stats()
+                        })
+        except Exception as e:
+            print(f"Erreur message: {e}")
 
-    def on_error(ws, error): print(f"Erreur WebSocket: {error}")
+    def on_error(ws, error):
+        print(f"Erreur WebSocket: {error}")
+
     def on_close(ws, close_status_code, close_msg):
         global is_connected
         is_connected = False
         print("WebSocket fermé, reconnexion dans 10s...")
-        try: socketio.emit('ais_status', {'connected': False})
-        except: pass
+        try:
+            socketio.emit('ais_status', {'connected': False})
+        except Exception:
+            pass
         threading.Timer(10, ais_websocket_thread).start()
 
     def on_open(ws):
         global is_connected
         is_connected = True
         print("AISStream connecté")
-        try: socketio.emit('ais_status', {'connected': True})
-        except: pass
+        try:
+            socketio.emit('ais_status', {'connected': True})
+        except Exception:
+            pass
         ws.send(json.dumps({"APIKey": AIS_API_KEY, "BoundingBoxes": [BOUNDING_BOX]}))
 
     try:
-        ws = websocket.WebSocketApp("wss://stream.aisstream.io/v0/stream", on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+        ws = websocket.WebSocketApp(
+            "wss://stream.aisstream.io/v0/stream",
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close
+        )
         ws.run_forever()
     except Exception as e:
         print(f"Erreur AISStream: {e}")
         is_connected = False
+
 
 def determine_type(ship_type):
     t = str(ship_type).lower()
@@ -323,30 +399,45 @@ def determine_type(ship_type):
     if 'tug' in t: return 'tug'
     return 'other'
 
+
 def get_stats():
     with vessel_lock:
         vl = list(vessels.values())
-        return {'total': len(vl), 'connected': is_connected, 'messages': message_count, 'last_update': last_update.isoformat() if last_update else None, 'types': list({v.get('type', 'other') for v in vl})}
+        return {
+            'total': len(vl),
+            'connected': is_connected,
+            'messages': message_count,
+            'last_update': last_update.isoformat() if last_update else None,
+            'types': list({v.get('type', 'other') for v in vl})
+        }
 
 # ============================================================
 # ROUTES API
 # ============================================================
 
 @app.route('/')
-def index(): return render_template('index.html')
+def index():
+    return render_template('index.html')
+
 
 @app.route('/api/vessels')
 def get_vessels():
     with vessel_lock:
-        if len(vessels) == 0 and use_test_data: return jsonify(get_test_vessels())
+        if len(vessels) == 0 and use_test_data:
+            return jsonify(get_test_vessels())
         return jsonify(list(vessels.values()))
+
 
 @app.route('/api/vessels/<vessel_id>')
 def get_vessel(vessel_id):
-    with vessel_lock: return jsonify(vessels.get(vessel_id, {}))
+    with vessel_lock:
+        return jsonify(vessels.get(vessel_id, {}))
+
 
 @app.route('/api/stats')
-def get_stats_api(): return jsonify(get_stats())
+def get_stats_api():
+    return jsonify(get_stats())
+
 
 @app.route('/api/kpis')
 def get_kpis():
@@ -354,33 +445,68 @@ def get_kpis():
         live_ctx = get_live_context()
         with vessel_lock:
             vl = list(vessels.values())
-            if len(vl) == 0 and use_test_data: vl = get_test_vessels()
+            if len(vl) == 0 and use_test_data:
+                vl = get_test_vessels()
             return jsonify(compute_kpis(vl, live_ctx))
     except Exception as e:
         print(f"!!! ERREUR KPIs !!!\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/weather')
 def get_weather():
     try:
         ctx = get_live_context()
-        return jsonify({'hourly': {'wave_height': [ctx.get('wave_height_m', 1.2)], 'wave_direction': [215], 'wave_period': [7.5], 'swell_wave_height': [ctx.get('swell_m', 0.9)]}})
-    except: pass
-    return jsonify({'hourly': {'wave_height': [1.2], 'wave_direction': [215], 'wave_period': [7.5], 'swell_wave_height': [0.9]}})
+        return jsonify({
+            'hourly': {
+                'wave_height': [ctx.get('wave_height_m', 1.2)],
+                'wave_direction': [215],
+                'wave_period': [7.5],
+                'swell_wave_height': [ctx.get('swell_m', 0.9)]
+            }
+        })
+    except Exception:
+        pass
+    return jsonify({
+        'hourly': {
+            'wave_height': [1.2],
+            'wave_direction': [215],
+            'wave_period': [7.5],
+            'swell_wave_height': [0.9]
+        }
+    })
+
 
 @app.route('/api/predictions')
 def get_predictions():
     with vessel_lock:
         vl = list(vessels.values())
-        if len(vl) == 0: vl = get_test_vessels()
-        if len(vl) < 3: return jsonify({'error': 'Données insuffisantes'}), 200
+        if len(vl) == 0:
+            vl = get_test_vessels()
+        if len(vl) < 3:
+            return jsonify({'error': 'Données insuffisantes'}), 200
         traffic = len(vl)
-        preds = [{'day': i+1, 'prediction': max(0, traffic * (1 + (i * 0.02))), 'confidence': max(0.55, 0.88 - (i * 0.02))} for i in range(7)]
-        trend = ((preds[-1]['prediction'] - preds[0]['prediction']) / preds[0]['prediction'] * 100) if preds[0]['prediction'] > 0 else 0
-        return jsonify({'predictions': preds, 'trend': trend, 'peak': max(p['prediction'] for p in preds), 'avg_confidence': sum(p['confidence'] for p in preds) / len(preds)})
+        preds = [
+            {
+                'day': i + 1,
+                'prediction': max(0, traffic * (1 + (i * 0.02))),
+                'confidence': max(0.55, 0.88 - (i * 0.02))
+            }
+            for i in range(7)
+        ]
+        trend = ((preds[-1]['prediction'] - preds[0]['prediction']) / preds[0]['prediction'] * 100) \
+            if preds[0]['prediction'] > 0 else 0
+        return jsonify({
+            'predictions': preds,
+            'trend': trend,
+            'peak': max(p['prediction'] for p in preds),
+            'avg_confidence': sum(p['confidence'] for p in preds) / len(preds)
+        })
+
 
 @app.route('/static/<path:filename>')
-def static_files(filename): return send_from_directory('static', filename)
+def static_files(filename):
+    return send_from_directory('static', filename)
 
 # ============================================================
 # MAIN
@@ -392,6 +518,7 @@ if __name__ == '__main__':
     print("Géofencing actif sur le périmètre des quais")
     print("=" * 60)
     print(f"Web: http://localhost:{PORT}")
+    print(f"API Key AISStream chargée : {'oui' if AIS_API_KEY else 'NON'}")
 
     get_live_context()
     print("Contexte météo initialisé.")
