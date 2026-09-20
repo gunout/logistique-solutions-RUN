@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S-WING REUNION PRO // CMD CENTER</title>
+    <title>S-Wing Réunion PRO · Centre de Commandement</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,63 +12,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         :root {
-            /* PALETTE BLEU BLANC ROUGE */
-            --bleu-france: #0055A4;      /* Bleu institutionnel */
-            --bleu-nuit:   #0A1B3D;      /* Bleu marine profond */
-            --bleu-clair:  #2E7DD1;      /* Bleu clair accent */
-            --bleu-pale:   #E8F0F9;      /* Bleu très pâle fonds */
+            --bleu-france: #0055A4;
+            --bleu-nuit:   #0A1B3D;
+            --bleu-clair:  #2E7DD1;
+            --bleu-pale:   #E8F0F9;
             --blanc:       #FFFFFF;
             --blanc-casse: #F5F7FA;
-            --rouge-france:#EF4135;      /* Rouge Marianne */
-            --rouge-fonce: #C1272D;      /* Rouge foncé */
+            --rouge-france:#EF4135;
+            --rouge-fonce: #C1272D;
             --gris-texte:  #1A2942;
             --gris-moyen:  #64748B;
             --gris-clair:  #CBD5E1;
             --gris-bord:   #E2E8F0;
 
-            /* Rôles sémantiques */
             --ok:      #10B981;
             --warn:    #F59E0B;
             --danger:  var(--rouge-france);
-            --info:    var(--bleu-clair);
 
-            /* Mapping ancien → nouveau (compat) */
             --bg-void: var(--blanc-casse);
             --bg-panel: var(--blanc);
             --border-dim: var(--gris-bord);
-            --border-lit: var(--gris-clair);
             --c-main: var(--bleu-france);
             --c-amber: var(--warn);
             --c-red: var(--rouge-france);
             --c-blue: var(--bleu-clair);
-            --c-green: var(--ok);
             --text-hi: var(--gris-texte);
             --text-lo: var(--gris-moyen);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; }
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--blanc-casse);
-            color: var(--gris-texte);
-            overflow-x: hidden;
-            font-size: 14px;
-            line-height: 1.5;
-        }
+        body { font-family: 'Inter', sans-serif; background: var(--blanc-casse); color: var(--gris-texte); font-size: 14px; line-height: 1.5; }
 
-        /* Bandeau tricolore discret en haut */
         .tricolore-bar {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            z-index: 10002;
+            position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 10002;
             background: linear-gradient(90deg,
                 var(--bleu-france) 0%, var(--bleu-france) 33.33%,
                 var(--blanc) 33.33%, var(--blanc) 66.66%,
                 var(--rouge-france) 66.66%, var(--rouge-france) 100%);
         }
 
-        /* Panneaux PRO */
         .pro-panel {
             background: var(--blanc);
             border: 1px solid var(--gris-bord);
@@ -76,105 +57,67 @@
             padding: 16px 18px;
             position: relative;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+            transition: box-shadow 0.2s, border-color 0.2s;
         }
-        .pro-panel:hover {
-            box-shadow: 0 4px 12px rgba(0, 85, 164, 0.08);
-            border-color: var(--bleu-clair);
-        }
+        .pro-panel:hover { box-shadow: 0 4px 12px rgba(0, 85, 164, 0.08); border-color: var(--bleu-clair); }
         .pro-panel::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
             background: linear-gradient(90deg, var(--bleu-france), var(--bleu-clair), transparent);
-            border-radius: 8px 8px 0 0;
-            opacity: 0.7;
+            border-radius: 8px 8px 0 0; opacity: 0.7;
         }
         .pro-panel.accent-red::before { background: linear-gradient(90deg, var(--rouge-france), var(--rouge-fonce), transparent); }
 
         .hdr {
-            font-size: 10.5px;
-            color: var(--gris-moyen);
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 10.5px; color: var(--gris-moyen); letter-spacing: 1.5px;
+            text-transform: uppercase; font-weight: 600; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
         }
         .hdr i { color: var(--bleu-france); font-size: 12px; }
-        .hdr::after {
-            content: "";
-            flex: 1; height: 1px;
-            background: linear-gradient(90deg, var(--gris-bord), transparent);
-        }
+        .hdr::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--gris-bord), transparent); }
 
-        .kv {
-            font-size: 26px;
-            font-weight: 800;
-            line-height: 1.1;
-            color: var(--bleu-france);
-            letter-spacing: -0.5px;
-            font-family: 'Inter', sans-serif;
-        }
+        .kv { font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--bleu-france); letter-spacing: -0.5px; }
         .kv.nd { color: var(--gris-moyen); font-size: 16px; font-weight: 500; }
         .kv-sub { font-size: 10px; color: var(--gris-moyen); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* CARTE */
         #map { width: 100%; height: 100%; background: #EAF1F8; }
         .leaflet-container { background: #EAF1F8 !important; font-family: 'Inter', sans-serif !important; }
         .leaflet-control-zoom a {
-            background: var(--blanc) !important;
-            color: var(--bleu-france) !important;
-            border-color: var(--gris-bord) !important;
-            font-weight: 600 !important;
+            background: var(--blanc) !important; color: var(--bleu-france) !important;
+            border-color: var(--gris-bord) !important; font-weight: 600 !important;
         }
         .leaflet-control-zoom a:hover { background: var(--bleu-pale) !important; }
+        .leaflet-control-attribution {
+            background: rgba(255,255,255,0.85) !important;
+            font-size: 10px !important;
+            color: var(--gris-moyen) !important;
+        }
         .map-vig {
             position: absolute; inset: 0;
-            background: radial-gradient(circle at center, transparent 55%, rgba(10,27,61,0.15) 100%);
-            pointer-events: none;
-            z-index: 500;
+            background: radial-gradient(circle at center, transparent 55%, rgba(10,27,61,0.10) 100%);
+            pointer-events: none; z-index: 500;
         }
 
-        /* Marqueurs navires */
         .v-mk {
-            width: 14px; height: 14px;
-            background: var(--bleu-france);
-            border: 2px solid var(--blanc);
-            border-radius: 50%;
+            width: 14px; height: 14px; background: var(--bleu-france);
+            border: 2px solid var(--blanc); border-radius: 50%;
             box-shadow: 0 0 0 1px var(--bleu-france), 0 2px 4px rgba(0,85,164,0.3);
             position: relative;
         }
-        .v-mk.slow {
-            background: var(--warn);
-            box-shadow: 0 0 0 1px var(--warn), 0 2px 4px rgba(245,158,11,0.3);
-        }
-        .v-mk.stopped {
-            background: var(--rouge-france);
-            box-shadow: 0 0 0 1px var(--rouge-france), 0 2px 4px rgba(239,65,53,0.4);
-        }
+        .v-mk.slow { background: var(--warn); box-shadow: 0 0 0 1px var(--warn), 0 2px 4px rgba(245,158,11,0.3); }
+        .v-mk.stopped { background: var(--rouge-france); box-shadow: 0 0 0 1px var(--rouge-france), 0 2px 4px rgba(239,65,53,0.4); }
         .v-mk::after {
-            content: "";
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 14px; height: 14px;
-            border: 2px solid currentColor;
-            border-radius: 50%;
-            transform: translate(-50%,-50%);
-            animation: vping 2s infinite;
-            opacity: 0.5;
+            content: ""; position: absolute; top: 50%; left: 50%;
+            width: 14px; height: 14px; border: 2px solid currentColor;
+            border-radius: 50%; transform: translate(-50%,-50%);
+            animation: vping 2s infinite; opacity: 0.5;
         }
         @keyframes vping {
             0%   { width: 14px; height: 14px; opacity: 0.6; }
             100% { width: 36px; height: 36px; opacity: 0; }
         }
 
-        /* Popups Leaflet PRO */
         .leaflet-popup-content-wrapper {
-            background: var(--blanc) !important;
-            color: var(--gris-texte) !important;
+            background: var(--blanc) !important; color: var(--gris-texte) !important;
             border: 1px solid var(--gris-bord) !important;
             border-top: 3px solid var(--bleu-france) !important;
             border-radius: 6px !important;
@@ -182,31 +125,17 @@
             box-shadow: 0 12px 30px rgba(10,27,61,0.18) !important;
             padding: 0 !important;
         }
-        .leaflet-popup-content {
-            margin: 14px 16px !important;
-            min-width: 320px !important;
-            max-width: 400px !important;
-        }
-        .leaflet-popup-tip {
-            background: var(--blanc) !important;
-            border: 1px solid var(--gris-bord) !important;
-        }
+        .leaflet-popup-content { margin: 14px 16px !important; min-width: 320px !important; max-width: 400px !important; }
+        .leaflet-popup-tip { background: var(--blanc) !important; border: 1px solid var(--gris-bord) !important; }
         .leaflet-popup-close-button {
-            color: var(--rouge-france) !important;
-            font-size: 18px !important;
-            padding: 6px 8px !important;
-            opacity: 0.6 !important;
-            transition: opacity 0.2s !important;
+            color: var(--rouge-france) !important; font-size: 18px !important;
+            padding: 6px 8px !important; opacity: 0.6 !important;
         }
         .leaflet-popup-close-button:hover { opacity: 1 !important; }
 
-        /* Log console */
         .ll {
-            font-size: 11.5px;
-            padding: 5px 8px;
-            color: var(--gris-moyen);
-            border-bottom: 1px solid var(--gris-bord);
-            font-family: 'JetBrains Mono', monospace;
+            font-size: 11.5px; padding: 5px 8px; color: var(--gris-moyen);
+            border-bottom: 1px solid var(--gris-bord); font-family: 'JetBrains Mono', monospace;
         }
         .ll .t { color: var(--bleu-france); margin-right: 8px; font-weight: 600; }
         .ll .w { color: var(--warn); }
@@ -224,62 +153,41 @@
         .vt tr:hover { background: var(--bleu-pale); }
         .vt thead th { background: var(--blanc-casse); color: var(--gris-moyen); font-weight: 600; font-size: 10.5px; letter-spacing: 0.5px; }
 
-        /* Radar */
         .radar-sw {
             position: absolute; width: 100%; height: 100%;
             background: conic-gradient(from 0deg, transparent 0%, rgba(0,85,164,0.25) 8%, transparent 12%);
-            animation: rrot 3s linear infinite;
-            border-radius: 50%;
+            animation: rrot 3s linear infinite; border-radius: 50%;
         }
         @keyframes rrot { 100% { transform: rotate(360deg); } }
 
-        /* Onglets PRO */
         .tab-nav {
             display: flex; gap: 4px; margin-bottom: 16px;
             overflow-x: auto; padding-bottom: 0;
             border-bottom: 2px solid var(--gris-bord);
         }
         .tab-btn {
-            font-size: 12px;
-            padding: 10px 18px;
-            background: transparent;
-            color: var(--gris-moyen);
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            transition: all 0.2s;
-            white-space: nowrap;
+            font-size: 12px; padding: 10px 18px; background: transparent;
+            color: var(--gris-moyen); border: none;
+            border-bottom: 3px solid transparent; cursor: pointer;
+            font-weight: 600; letter-spacing: 0.3px;
+            transition: all 0.2s; white-space: nowrap;
             font-family: 'Inter', sans-serif;
         }
-        .tab-btn.active {
-            color: var(--bleu-france);
-            border-bottom-color: var(--bleu-france);
-            background: linear-gradient(180deg, transparent, var(--bleu-pale));
-        }
+        .tab-btn.active { color: var(--bleu-france); border-bottom-color: var(--bleu-france); background: linear-gradient(180deg, transparent, var(--bleu-pale)); }
         .tab-btn:hover { color: var(--bleu-france); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* Alertes */
         .alert-bar {
-            font-size: 12px;
-            padding: 10px 14px;
-            border-left: 4px solid;
-            background: var(--blanc);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+            font-size: 12px; padding: 10px 14px; border-left: 4px solid;
+            background: var(--blanc); border-radius: 4px;
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 500; box-shadow: 0 1px 2px rgba(15,23,42,0.04);
         }
         .alert-ok   { border-color: var(--ok); color: #065F46; background: #ECFDF5; }
         .alert-warn { border-color: var(--warn); color: #92400E; background: #FFFBEB; }
         .alert-err  { border-color: var(--rouge-france); color: var(--rouge-fonce); background: #FEF2F2; }
 
-        /* Boot screen */
         #boot-screen {
             position: fixed; inset: 0; z-index: 10001;
             background: linear-gradient(135deg, var(--bleu-nuit), var(--bleu-france));
@@ -291,10 +199,8 @@
         #boot-screen .sub { color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 2px; }
         @keyframes boot-bar { 0%{width:0} 100%{width:100%} }
         .boot-progress {
-            width: 320px; height: 3px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 3px; overflow: hidden;
-            position: relative;
+            width: 320px; height: 3px; background: rgba(255,255,255,0.15);
+            border-radius: 3px; overflow: hidden; position: relative;
         }
         .boot-progress::after {
             content: ""; position: absolute; height: 100%;
@@ -302,94 +208,66 @@
             animation: boot-bar 3s ease-in-out forwards;
         }
 
-        /* Error screen */
         #error-screen {
-            position: fixed; inset: 0; z-index: 10000;
-            background: var(--blanc-casse);
-            display: none; flex-direction: column;
-            align-items: center; justify-content: center;
+            position: fixed; inset: 0; z-index: 10000; background: var(--blanc-casse);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; gap: 24px;
         }
         #error-screen.active { display: flex; }
         .err-box {
-            background: var(--blanc);
-            border-top: 4px solid var(--rouge-france);
-            border-radius: 8px;
-            padding: 48px 64px;
-            box-shadow: 0 20px 40px rgba(10,27,61,0.12);
-            max-width: 600px;
+            background: var(--blanc); border-top: 4px solid var(--rouge-france);
+            border-radius: 8px; padding: 48px 64px;
+            box-shadow: 0 20px 40px rgba(10,27,61,0.12); max-width: 600px;
         }
 
-        /* Header */
         .header-pro {
-            background: var(--blanc);
-            border-bottom: 1px solid var(--gris-bord);
+            background: var(--blanc); border-bottom: 1px solid var(--gris-bord);
             box-shadow: 0 1px 3px rgba(10,27,61,0.05);
         }
         .logo-box {
             background: linear-gradient(135deg, var(--bleu-france), var(--bleu-nuit));
-            color: var(--blanc);
-            padding: 8px 14px;
-            border-radius: 6px;
+            color: var(--blanc); padding: 8px 14px; border-radius: 6px;
             display: flex; align-items: center; gap: 8px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            font-size: 13px;
+            font-weight: 800; letter-spacing: 2px; font-size: 13px;
             box-shadow: 0 2px 6px rgba(0,85,164,0.3);
         }
-        .logo-box i { color: var(--blanc); }
-
-        /* Footer */
         footer {
-            background: var(--bleu-nuit);
-            color: rgba(255,255,255,0.65);
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            padding: 14px;
-            text-align: center;
-            margin-top: 24px;
+            background: var(--bleu-nuit); color: rgba(255,255,255,0.65);
+            font-size: 11px; letter-spacing: 1.5px; padding: 14px;
+            text-align: center; margin-top: 24px;
         }
-
-        /* Statut dot */
-        .status-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: var(--gris-clair);
-            display: inline-block;
-        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gris-clair); display: inline-block; }
         .status-dot.live { background: var(--ok); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
         .status-dot.offline { background: var(--warn); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
     </style>
 </head>
-<body class="relative">
+<body>
 
     <div class="tricolore-bar"></div>
 
-    <!-- ECRAN DE CHARGEMENT -->
     <div id="boot-screen">
         <div class="title">S-WING REUNION PRO</div>
-        <div class="sub" id="boot-status">INITIALISATION SYSTEME...</div>
+        <div class="sub" id="boot-status">INITIALISATION SYSTÈME...</div>
         <div class="boot-progress"></div>
     </div>
 
-    <!-- ECRAN D'ERREUR -->
     <div id="error-screen">
         <div class="err-box">
             <div style="color: var(--rouge-france); font-size: 42px; font-weight: 800; letter-spacing: 3px; margin-bottom: 16px;">CONNEXION PERDUE</div>
             <div style="color: var(--gris-moyen); font-size: 13px; line-height: 1.8; margin-bottom: 24px;">
                 LE SERVEUR FLASK EST INJOIGNABLE<br>
-                VERIFIEZ QUE <span style="color:var(--gris-texte);font-weight:600;">server.py</span> EST ACTIF SUR LE PORT
+                VÉRIFIEZ QUE <span style="color:var(--gris-texte);font-weight:600;">server.py</span> EST ACTIF SUR LE PORT
                 <span style="color:var(--bleu-france);font-weight:700;">5001</span><br><br>
                 <span style="color:var(--gris-moyen);font-family:'JetBrains Mono',monospace;">$</span>
                 <span style="color:var(--bleu-france);font-family:'JetBrains Mono',monospace;font-weight:600;">python server.py</span>
             </div>
-            <button onclick="location.reload()" style="background: var(--rouge-france); color: var(--blanc); border: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; letter-spacing: 1px; cursor: pointer; font-size: 12px; transition: background 0.2s;">
-                <i class="fa-solid fa-rotate-right" style="margin-right: 8px;"></i>REESSAYER
+            <button onclick="location.reload()" style="background: var(--rouge-france); color: var(--blanc); border: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; letter-spacing: 1px; cursor: pointer; font-size: 12px;">
+                <i class="fa-solid fa-rotate-right" style="margin-right: 8px;"></i>RÉESSAYER
             </button>
         </div>
         <div style="color: var(--gris-moyen); font-size: 11px;" id="err-detail">---</div>
     </div>
 
-    <!-- HEADER -->
     <header class="header-pro sticky top-0 z-[1000] px-5 py-3">
         <div class="max-w-[2400px] mx-auto flex items-center justify-between">
             <div class="flex items-center gap-4">
@@ -411,21 +289,23 @@
                     <i class="fa-solid fa-tower-broadcast" style="color: var(--bleu-clair);"></i>
                     <span>PAQUETS : <span id="msg-count" style="color: var(--gris-texte); font-weight: 700;">0</span></span>
                 </div>
+                <div class="hidden md:flex items-center gap-2" style="color: var(--gris-moyen);">
+                    <i class="fa-solid fa-ship" style="color: var(--bleu-france);"></i>
+                    <span>NAVIRES : <span id="vessel-count" style="color: var(--gris-texte); font-weight: 700;">0</span></span>
+                </div>
                 <div style="font-weight: 700; color: var(--bleu-france); letter-spacing: 1px; font-family: 'JetBrains Mono', monospace;" id="clock">--:--:--</div>
             </div>
         </div>
     </header>
 
-    <main class="p-4 max-w-[2400px] mx-auto space-y-4" id="main-content">
+    <main class="p-4 max-w-[2400px] mx-auto space-y-4">
 
-        <!-- ALERTES -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="alerts-container">
             <div class="alert-bar alert-ok"><i class="fa-solid fa-circle-check"></i> <span>SYSTÈME : INITIALISATION...</span></div>
             <div class="alert-bar alert-ok"><i class="fa-solid fa-ship"></i> <span>TRAFIC : EN ATTENTE DES DONNÉES...</span></div>
             <div class="alert-bar alert-ok"><i class="fa-solid fa-cloud-sun"></i> <span>MÉTÉO : ANALYSE EN COURS...</span></div>
         </div>
 
-        <!-- KPIs -->
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-box"></i> CONTENEURS</div><div class="kv nd" id="k-cont">N/D</div><div class="kv-sub">TRAITÉS</div></div>
             <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-warehouse"></i> OCC. QUAIS</div><div class="kv nd" id="k-ocp">N/D</div><div class="kv-sub">TAUX %</div></div>
@@ -437,22 +317,20 @@
             <div class="pro-panel accent-red"><div class="hdr"><i class="fa-solid fa-leaf"></i> CO₂</div><div class="kv nd" id="k-co2">N/D</div><div class="kv-sub">TONNES</div></div>
         </div>
 
-        <!-- ONGLETS -->
         <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('tab-map', this)"><i class="fa-solid fa-map-location-dot" style="margin-right:8px;"></i>CARTE & AIS</button>
+            <button class="tab-btn active" onclick="switchTab('tab-map', this)"><i class="fa-solid fa-map-location-dot" style="margin-right:8px;"></i>CARTE &amp; AIS</button>
             <button class="tab-btn" onclick="switchTab('tab-analytics', this)"><i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>ANALYTIQUE</button>
             <button class="tab-btn" onclick="switchTab('tab-ia', this)"><i class="fa-solid fa-brain" style="margin-right:8px;"></i>PRÉDICTIONS IA</button>
             <button class="tab-btn" onclick="switchTab('tab-ops', this)"><i class="fa-solid fa-list-check" style="margin-right:8px;"></i>OPÉRATIONS</button>
-            <button class="tab-btn" onclick="switchTab('tab-reports', this)"><i class="fa-solid fa-file-export" style="margin-right:8px;"></i>RAPPORTS & EXPORT</button>
+            <button class="tab-btn" onclick="switchTab('tab-reports', this)"><i class="fa-solid fa-file-export" style="margin-right:8px;"></i>RAPPORTS &amp; EXPORT</button>
         </div>
 
-        <!-- TAB 1 : CARTE -->
         <div id="tab-map" class="tab-content active">
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4" style="height:560px;">
                 <div class="lg:col-span-3 pro-panel relative p-0" style="overflow:hidden;">
                     <div style="position:absolute;top:12px;left:16px;z-index:1000;">
-                        <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--bleu-france);background:var(--blanc);padding:6px 12px;border-radius:4px;border:1px solid var(--gris-bord);box-shadow:0 2px 6px rgba(10,27,61,0.08);">
-                            <i class="fa-solid fa-location-crosshairs" style="margin-right:6px;"></i>21.115°S · 55.536°E
+                        <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--bleu-france);background:var(--blanc);padding:6px 12px;border-radius:4px;border:1px solid var(--gris-bord);box-shadow:0 2px 6px rgba(10,27,61,0.08);" id="map-coords">
+                            <i class="fa-solid fa-location-crosshairs" style="margin-right:6px;"></i>SUIVI AUTOMATIQUE
                         </div>
                     </div>
                     <div id="map"></div>
@@ -476,7 +354,6 @@
             </div>
         </div>
 
-        <!-- TAB 2 : ANALYTIQUE -->
         <div id="tab-analytics" class="tab-content">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div class="pro-panel"><div class="hdr"><i class="fa-solid fa-chart-pie"></i> TYPES DE NAVIRES (AIS)</div><div style="height:300px;position:relative;"><canvas id="ch-type"></canvas></div></div>
@@ -490,7 +367,6 @@
             </div>
         </div>
 
-        <!-- TAB 3 : PRÉDICTIONS -->
         <div id="tab-ia" class="tab-content">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="lg:col-span-2 pro-panel">
@@ -517,7 +393,6 @@
             </div>
         </div>
 
-        <!-- TAB 4 : OPÉRATIONS -->
         <div id="tab-ops" class="tab-content">
             <div class="pro-panel">
                 <div class="hdr">
@@ -550,7 +425,6 @@
             </div>
         </div>
 
-        <!-- TAB 5 : RAPPORTS -->
         <div id="tab-reports" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="pro-panel flex flex-col items-center justify-center text-center" style="padding:40px 20px;opacity:0.55;cursor:not-allowed;">
@@ -582,8 +456,8 @@
                         <div style="font-weight:600;color:var(--bleu-france);">CHARGÉE VIA .ENV</div>
                     </div>
                     <div>
-                        <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">BOUNDING BOX</div>
-                        <div style="font-weight:600;font-family:'JetBrains Mono',monospace;">[-21.5,54.5] → [-20.5,56.5]</div>
+                        <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">CARTE</div>
+                        <div style="font-weight:600;">OPENSTREETMAP (SANS CLÉ)</div>
                     </div>
                     <div>
                         <div style="color:var(--gris-moyen);font-size:10.5px;letter-spacing:0.5px;margin-bottom:4px;">HISTORIQUE</div>
@@ -600,7 +474,7 @@
     </main>
 
     <footer>
-        S-WING RÉUNION PRO v2.1 · FLASK + AISSTREAM · LE PORT 97420
+        S-WING RÉUNION PRO v2.2 · FLASK + AISSTREAM · OPENSTREETMAP
     </footer>
 
     <script>
@@ -610,6 +484,7 @@
         const API = window.location.origin;
         let vessels = [], packets = 0, aisLive = false, bootDone = false, kpisData = null;
         let chType, chSpd, chPred;
+        let autoCentered = false; // centre la carte une seule fois sur les navires
 
         const AIS_TYPES = { 0: 'Inconnu', 4: 'Passagers', 7: 'Cargo', 10: 'Tanker', 14: 'H/Vitesse', 20: 'Sans prop.', 26: 'Pilotage', 30: 'Remorqueur', 33: 'Dragueur', 36: 'Hydro.', 40: 'Garde', 45: 'Liaison', 50: 'Pêche', 90: 'Soutien' };
 
@@ -662,31 +537,63 @@
         }
 
         // ========================================================================
-        // CARTE
+        // CARTE — OpenStreetMap (gratuit, sans clé API)
         // ========================================================================
-        const map = L.map('map', { center: [-21.115, 55.536], zoom: 10, zoomControl: false, attributionControl: false });
+        const map = L.map('map', {
+            center: [-21.115, 55.536],  // centre initial (La Réunion) mais suit les navires ensuite
+            zoom: 6,
+            zoomControl: false,
+            attributionControl: true,
+            worldCopyJump: true
+        });
         window.map = map;
+
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
+
+        // ✅ Tuiles OpenStreetMap standard — AUCUNE CLÉ REQUISE
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Périmètre indicatif du port de La Réunion
         L.polygon([
-            [-21.08, 55.50], [-21.08, 55.57], [-21.14, 55.57], [-21.14, 55.50]
-        ], { color: '#0055A4', weight: 2, fillColor: '#0055A4', fillOpacity: 0.05, dashArray: '6 6' }).addTo(map);
+            [-21.08, 55.50],
+            [-21.08, 55.57],
+            [-21.14, 55.57],
+            [-21.14, 55.50]
+        ], {
+            color: '#0055A4', weight: 2, fillColor: '#0055A4',
+            fillOpacity: 0.05, dashArray: '6 6'
+        }).addTo(map);
+
+        // Cercles concentriques autour du port (repère visuel)
         [10, 20, 30].forEach(r => L.circle([-21.115, 55.536], {
-            radius: r * 1852, color: '#2E7DD1', weight: 0.8, fillColor: 'transparent', dashArray: '3 5', opacity: 0.35
+            radius: r * 1852, color: '#2E7DD1', weight: 0.8,
+            fillColor: 'transparent', dashArray: '3 5', opacity: 0.35
         }).addTo(map));
+
         let vLayer = L.layerGroup().addTo(map);
 
         function renderMap() {
             vLayer.clearLayers();
+            const bounds = [];
+
             vessels.forEach(v => {
                 if (v.lat == null || v.lng == null) return;
+                // Ignore les positions manifestement invalides
+                if (Math.abs(v.lat) < 0.1 && Math.abs(v.lng) < 0.1) return;
+
                 const s = v.speed || 0;
                 const cls = s < 0.5 ? 'stopped' : (s < 5 ? 'slow' : '');
                 const icon = L.divIcon({
-                    className: '', html: `<div class="v-mk ${cls}"></div>`,
-                    iconSize: [14, 14], iconAnchor: [7, 7]
+                    className: '',
+                    html: `<div class="v-mk ${cls}"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
                 });
                 const m = L.marker([v.lat, v.lng], { icon }).addTo(vLayer);
+                bounds.push([v.lat, v.lng]);
 
                 m.bindPopup(`
                     <div style="min-width:320px;max-width:380px;font-family:'Inter',sans-serif;color:#1A2942;">
@@ -725,7 +632,21 @@
                     </div>
                 `, { maxWidth: 400 });
             });
+
             document.getElementById('radar-ct').textContent = `${vessels.length} CIBLES`;
+
+            // ✅ Centrage automatique sur les navires — seulement au premier chargement
+            if (!autoCentered && bounds.length > 0) {
+                autoCentered = true;
+                if (bounds.length === 1) {
+                    map.setView(bounds[0], 10);
+                } else {
+                    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+                }
+                document.getElementById('map-coords').innerHTML =
+                    '<i class="fa-solid fa-location-crosshairs" style="margin-right:6px;"></i>SUIVI AUTOMATIQUE · ' +
+                    `${bounds[0][0].toFixed(2)}°, ${bounds[0][1].toFixed(2)}°`;
+            }
         }
 
         // ========================================================================
@@ -742,9 +663,7 @@
                 data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: '#FFFFFF', borderWidth: 2 }] },
                 options: {
                     responsive: true, maintainAspectRatio: false, cutout: '68%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11, weight: '500' } } }
-                    }
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11, weight: '500' } } } }
                 }
             });
             chSpd = new Chart(document.getElementById('ch-spd'), {
@@ -836,11 +755,12 @@
         }
 
         // ========================================================================
-        // TABLE
+        // TABLEAU
         // ========================================================================
         function updateTable() {
             const tbody = document.getElementById('vt-body');
             document.getElementById('vt-count').textContent = vessels.length;
+            document.getElementById('vessel-count').textContent = vessels.length;
             if (!vessels.length) {
                 tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--gris-moyen);padding:40px 0;">AUCUN NAVIRE DÉTECTÉ</td></tr>';
                 return;
@@ -940,7 +860,6 @@
             try {
                 const d = await apiGet('/api/weather');
                 updateWeather(d);
-                log('Météo actualisée');
             } catch (e) { log(`Erreur météo : ${e.message}`, 'warn'); }
         }
 
@@ -967,7 +886,6 @@
                 if (d.avg_confidence < 0.7) act += '<div style="color:var(--rouge-france);"><i class="fa-solid fa-exclamation-circle" style="margin-right:8px;"></i>Faible confiance du modèle.</div>';
                 act += '</div>';
                 document.getElementById('ia-actions').innerHTML = act;
-                log('Prédictions actualisées');
             } catch (e) { log(`Erreur prédictions : ${e.message}`, 'warn'); }
         }
 
@@ -1026,10 +944,8 @@
             await new Promise(r => setTimeout(r, 800));
 
             s.textContent = 'VÉRIFICATION DES POINTS D\'ACCÈS...';
-            try {
-                await apiGet('/api/stats');
-                log('Serveur Flask détecté');
-            } catch (e) { log('Serveur Flask non détecté', 'err'); }
+            try { await apiGet('/api/stats'); log('Serveur Flask détecté'); }
+            catch (e) { log('Serveur Flask non détecté', 'err'); }
 
             await new Promise(r => setTimeout(r, 600));
             s.textContent = 'SYNCHRONISATION AIS + KPIs...';
@@ -1049,17 +965,10 @@
             setInterval(syncKPIs, 5000);
             setInterval(syncWeather, 60000);
             setInterval(syncPredictions, 30000);
-
-            setInterval(() => {
-                if (vessels.length && aisLive) {
-                    const v = vessels[Math.floor(Math.random() * vessels.length)];
-                    log(`Réception ${v.id} // ${v.name || '?'} — ${(v.speed || 0).toFixed(1)} kts`);
-                }
-            }, 4000);
         }
 
         window.addEventListener('load', () => {
-            setTimeout(() => map.invalidateSize(), 100);
+            setTimeout(() => map.invalidateSize(), 150);
             boot();
         });
         window.addEventListener('resize', () => map.invalidateSize());
