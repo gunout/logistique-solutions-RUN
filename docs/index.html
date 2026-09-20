@@ -52,7 +52,7 @@
         .v-mk::after { content: ""; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 1px solid inherit; transform: translate(-50%,-50%) rotate(-45deg); opacity: 0.4; animation: vping 2s infinite; }
         @keyframes vping { 0% { width: 10px; height: 10px; opacity: 0.5; } 100% { width: 30px; height: 30px; opacity: 0; } }
 
-        /* Styles personnalisés pour les popups */
+        /* Popups Leaflet */
         .leaflet-popup-content-wrapper {
             background: var(--bg-panel) !important;
             color: var(--text-hi) !important;
@@ -78,9 +78,7 @@
             opacity: 0.7 !important;
             transition: opacity 0.2s !important;
         }
-        .leaflet-popup-close-button:hover {
-            opacity: 1 !important;
-        }
+        .leaflet-popup-close-button:hover { opacity: 1 !important; }
 
         .ll { font-size: 11px; border-bottom: 1px solid #15203010; padding: 4px 0; color: var(--text-lo); }
         .ll .t { color: var(--c-main); margin-right: 8px; }
@@ -263,7 +261,7 @@
             </div>
         </div>
 
-        <!-- TAB 4: OPERATIONS (TABLE COMPLETE) -->
+        <!-- TAB 4: OPERATIONS -->
         <div id="tab-ops" class="tab-content">
             <div class="cyber-panel">
                 <div class="hdr"><i class="fa-solid fa-table-list"></i> REGISTRE COMPLET FLOTTE <span class="ml-auto text-[var(--c-main)]" id="vt-count">0</span></div>
@@ -318,7 +316,7 @@
             <div class="cyber-panel mt-3">
                 <div class="hdr"><i class="fa-solid fa-circle-info"></i> CONFIGURATION SYSTEME</div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mt-2">
-                    <div><span class="text-[var(--text-lo)]">CLE API AIS:</span><br><span class="text-[var(--c-amber)]">***********aba3c</span></div>
+                    <div><span class="text-[var(--text-lo)]">CLE API AIS:</span><br><span class="text-[var(--c-amber)]">CHARGEE VIA .ENV</span></div>
                     <div><span class="text-[var(--text-lo)]">BOUNDING BOX:</span><br><span>[-21.5, 54.5] -> [-20.5, 56.5]</span></div>
                     <div><span class="text-[var(--text-lo)]">HISTORIQUE:</span><br><span>100 POS / NAVIRE</span></div>
                     <div><span class="text-[var(--text-lo)]">STATUS WS:</span><br><span id="cfg-ws" class="text-[var(--c-red)]">DECONNECTE</span></div>
@@ -336,7 +334,7 @@
         // ========================================================================
         // CONFIG & STATE
         // ========================================================================
-        const API = 'http://localhost:5001';
+        const API = window.location.origin; // Utilise l'origine courante (marche en localhost:5001 ET en prod)
         let vessels = [],
             packets = 0,
             aisLive = false,
@@ -344,19 +342,17 @@
             kpisData = null;
         let chType, chSpd, chPred;
 
-        // Mapping types AIS
         const AIS_TYPES = { 0: 'Inconnu', 4: 'Passagers', 7: 'Cargo', 10: 'Tanker', 14: 'H/Vitesse', 20: 'Sans prop.', 26: 'Pilotage', 30: 'Remorqueur', 33: 'Dragueur', 36: 'Hydro.', 40: 'Garde', 45: 'Liaison', 50: 'Peche', 90: 'Soutien' };
 
         function resolveAisType(r) {
             if (r === undefined || r === null) return 'Inconnu';
             const c = parseInt(r, 10);
             if (isNaN(c)) return 'Inconnu';
-            for (const [k, v] of Object.entries(AIS_TYPES)) {
-                const kInt = parseInt(k, 10);
-                const keys = Object.keys(AIS_TYPES).map(Number);
-                const idx = keys.indexOf(kInt);
-                const nextKey = idx < keys.length - 1 ? keys[idx + 1] : Infinity;
-                if (c >= kInt && c < nextKey) return v;
+            const keys = Object.keys(AIS_TYPES).map(Number);
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                const nextK = i < keys.length - 1 ? keys[i + 1] : Infinity;
+                if (c >= k && c < nextK) return AIS_TYPES[k];
             }
             return `T${c}`;
         }
@@ -373,17 +369,16 @@
             return 'Autre';
         }
 
-        // Logs
         function log(m, t = 'info') {
             const tm = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const b = document.getElementById('log-box');
+            if (!b) return;
             const c = t === 'warn' ? 'w' : t === 'err' ? 'e' : '';
             b.innerHTML += `<div class="ll"><span class="t">[${tm}]</span> <span class="${c}">${m}</span></div>`;
             b.scrollTop = b.scrollHeight;
             while (b.children.length > 60) b.removeChild(b.firstChild);
         }
 
-        // Tabs
         function switchTab(id, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -393,6 +388,7 @@
                 if (chType) chType.resize();
                 if (chSpd) chSpd.resize();
                 if (chPred) chPred.resize();
+                if (window.map) window.map.invalidateSize();
             }, 50);
         }
 
@@ -400,6 +396,7 @@
         // CARTE LEAFLET
         // ========================================================================
         const map = L.map('map', { center: [-21.115, 55.536], zoom: 10, zoomControl: false, attributionControl: false });
+        window.map = map;
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
         L.polygon([
@@ -425,10 +422,8 @@
                 });
                 const m = L.marker([v.lat, v.lng], { icon }).addTo(vLayer);
 
-                // Popup amélioré avec toutes les informations disponibles
                 m.bindPopup(`
                     <div style="min-width:320px; max-width:380px; background: var(--bg-panel); color: var(--text-hi); font-family: 'JetBrains Mono', monospace; padding: 4px;">
-                        <!-- En-tête avec nom et statut -->
                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-dim); padding-bottom:8px; margin-bottom:8px;">
                             <div style="color:var(--c-main);font-weight:bold;font-size:14px;letter-spacing:0.5px;">${v.name || 'N/A'}</div>
                             <div style="display:flex; align-items:center; gap:6px;">
@@ -437,9 +432,7 @@
                             </div>
                         </div>
 
-                        <!-- Grille d'informations -->
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:10px; line-height:1.8; color:var(--text-hi);">
-                            <!-- Colonne gauche -->
                             <div>
                                 <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
                                     <span style="color:var(--text-lo);">MMSI</span>
@@ -463,7 +456,6 @@
                                 </div>
                             </div>
 
-                            <!-- Colonne droite -->
                             <div>
                                 <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(21,48,48,0.3); padding:2px 0;">
                                     <span style="color:var(--text-lo);">VITESSE</span>
@@ -488,7 +480,6 @@
                             </div>
                         </div>
 
-                        <!-- Section Destination / ETA -->
                         <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border-dim);">
                             <div style="display:flex; justify-content:space-between; font-size:10px;">
                                 <div>
@@ -502,7 +493,6 @@
                             </div>
                         </div>
 
-                        <!-- Timestamp -->
                         <div style="margin-top:6px; text-align:right; font-size:8px; color:var(--text-lo); border-top:1px solid rgba(21,48,48,0.3); padding-top:4px;">
                             DERNIERE MISE A JOUR: ${v.timestamp ? new Date(v.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}
                         </div>
@@ -554,10 +544,11 @@
                 else bins[6]++;
             });
             const pal = ['#00ffc8', '#ffb800', '#00aaff', '#ff003c', '#a855f7', '#ec4899', '#84cc16'];
-            chType.data.labels = Object.keys(cats);
+            const keys = Object.keys(cats);
+            chType.data.labels = keys;
             chType.data.datasets[0].data = Object.values(cats);
-            chType.data.datasets[0].backgroundColor = Object.keys(cats).map((_, i) => pal[i % pal.length] + '33');
-            chType.data.datasets[0].borderColor = Object.keys(cats).map((_, i) => pal[i % pal.length]);
+            chType.data.datasets[0].backgroundColor = keys.map((_, i) => pal[i % pal.length] + '33');
+            chType.data.datasets[0].borderColor = keys.map((_, i) => pal[i % pal.length]);
             chType.update('none');
             chSpd.data.datasets[0].data = bins;
             chSpd.update('none');
@@ -570,19 +561,20 @@
             if (!d) return;
             const set = (id, val, color) => {
                 const el = document.getElementById(id);
+                if (!el) return;
                 el.textContent = val;
                 el.classList.remove('nd');
                 if (color) el.style.color = color;
             };
 
-            set('k-cont', d.conteneurs.toLocaleString('fr-FR'), 'var(--c-main)');
-            set('k-ocp', d.occupation + '%', d.occupation > 85 ? 'var(--c-red)' : d.occupation > 60 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-sat', d.satisfaction + '%', d.satisfaction < 75 ? 'var(--c-red)' : d.satisfaction < 85 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-ret', d.retards + 'h', d.retards > 3 ? 'var(--c-red)' : d.retards > 2 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-eff', d.efficacite + '%', d.efficacite < 75 ? 'var(--c-red)' : d.efficacite < 85 ? 'var(--c-amber)' : 'var(--c-main)');
-            set('k-rot', d.rotation + 'j', 'var(--c-blue)');
-            set('k-cost', d.cout_teu + '€', 'var(--c-amber)');
-            set('k-co2', d.co2 + 't', d.co2 > 15 ? 'var(--c-red)' : d.co2 > 8 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-cont', (d.conteneurs || 0).toLocaleString('fr-FR'), 'var(--c-main)');
+            set('k-ocp', (d.occupation || 0) + '%', d.occupation > 85 ? 'var(--c-red)' : d.occupation > 60 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-sat', (d.satisfaction || 0) + '%', d.satisfaction < 75 ? 'var(--c-red)' : d.satisfaction < 85 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-ret', (d.retards || 0) + 'h', d.retards > 3 ? 'var(--c-red)' : d.retards > 2 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-eff', (d.efficacite || 0) + '%', d.efficacite < 75 ? 'var(--c-red)' : d.efficacite < 85 ? 'var(--c-amber)' : 'var(--c-main)');
+            set('k-rot', (d.rotation || 0) + 'j', 'var(--c-blue)');
+            set('k-cost', (d.cout_teu || 0) + '€', 'var(--c-amber)');
+            set('k-co2', (d.co2 || 0) + 't', d.co2 > 15 ? 'var(--c-red)' : d.co2 > 8 ? 'var(--c-amber)' : 'var(--c-main)');
 
             if (d.metadata) log(`KPIs: ${d.metadata.navires_quai} quais / ${d.metadata.navires_mouvement} en mvmt`);
         }
@@ -623,6 +615,7 @@
         // ========================================================================
         function updateAlerts(weather, stats) {
             const ac = document.getElementById('alerts-container');
+            if (!ac || !stats) return;
             let h = `<div class="alert-bar ${aisLive ? 'alert-ok' : 'alert-warn'}"><i class="fa-solid fa-server"></i> <span>SYSTEME: ${aisLive ? 'AIS STREAM CONNECTE' : 'AIS STREAM HORS LIGNE'}</span></div>`;
             h += `<div class="alert-bar ${stats.total > 10 ? 'alert-warn' : 'alert-ok'}"><i class="fa-solid fa-ship"></i> <span>TRAFFIC: ${stats.total} NAVIRES ${stats.total > 10 ? '(ELEVE)' : ''}</span></div>`;
 
@@ -686,7 +679,7 @@
                 document.getElementById('msg-count').textContent = packets;
                 setStatus(d.connected);
                 updateAlerts(await apiGet('/api/weather').catch(() => null), d);
-            } catch (e) {}
+            } catch (e) { /* silencieux */ }
         }
 
         async function syncWeather() {
@@ -759,18 +752,17 @@
             const d = document.getElementById('status-dot'),
                 t = document.getElementById('status-text'),
                 w = document.getElementById('cfg-ws');
+            if (!d) return;
             if (l) {
                 d.className = 'w-2 h-2 rounded-full bg-[var(--c-main)] blink';
                 t.textContent = 'AIS LIVE';
                 t.style.color = 'var(--c-main)';
-                w.textContent = 'CONNECTE';
-                w.style.color = 'var(--c-main)';
+                if (w) { w.textContent = 'CONNECTE'; w.style.color = 'var(--c-main)'; }
             } else {
                 d.className = 'w-2 h-2 rounded-full bg-[var(--c-amber)] blink';
                 t.textContent = 'AIS OFFLINE';
                 t.style.color = 'var(--c-amber)';
-                w.textContent = 'DECONNECTE';
-                w.style.color = 'var(--c-red)';
+                if (w) { w.textContent = 'DECONNECTE'; w.style.color = 'var(--c-red)'; }
             }
         }
 
@@ -784,7 +776,7 @@
 
             s.textContent = 'TEST ENDPOINTS...';
             try {
-                await apiGet('/api/status');
+                await apiGet('/api/stats');
                 log('SERVEUR FLASK DETECTE');
             } catch (e) {
                 log('FLASK NON DETECTE', 'err');
@@ -793,22 +785,22 @@
             await new Promise(r => setTimeout(r, 600));
             s.textContent = 'SYNC AIS + KPIs...';
 
-            // Lancement initial parallèle
             await syncVessels();
             await syncStats();
             await syncKPIs();
             syncWeather();
             syncPredictions();
 
-            // Boucles de rafraîchissement
-            setInterval(() => document.getElementById('clock').textContent = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Indian/Reunion' }), 1000);
-            setInterval(syncVessels, 3000); // Navires : 3s
-            setInterval(syncStats, 2000); // Stats/Paquets : 2s
-            setInterval(syncKPIs, 5000); // KPIs Calculés : 5s
-            setInterval(syncWeather, 60000); // Météo : 60s
-            setInterval(syncPredictions, 30000); // IA : 30s
+            setInterval(() => {
+                const c = document.getElementById('clock');
+                if (c) c.textContent = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Indian/Reunion' });
+            }, 1000);
+            setInterval(syncVessels, 3000);
+            setInterval(syncStats, 2000);
+            setInterval(syncKPIs, 5000);
+            setInterval(syncWeather, 60000);
+            setInterval(syncPredictions, 30000);
 
-            // Log périodique
             setInterval(() => {
                 if (vessels.length && aisLive) {
                     const v = vessels[Math.floor(Math.random() * vessels.length)];
